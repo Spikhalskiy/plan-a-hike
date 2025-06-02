@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hiking Time Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; }
+        .container { max-width: 500px; }
+        #result h4 { color: #0d6efd; }
+        .btn-group .btn { min-width: 120px; }
+    </style>
+</head>
+<body>
+<div class="container mt-5">
+    <h2 class="mb-4">Hiking Time Calculator</h2>
+    <form id="hiking-calc-form">
+        <div class="mb-3">
+            <label for="distance" class="form-label">Distance (miles)</label>
+            <input type="number" step="0.01" class="form-control" id="distance" required value="5">
+        </div>
+        <div class="mb-3">
+            <label for="elevation" class="form-label">Vertical Gain (feet)</label>
+            <input type="number" step="1" class="form-control" id="elevation" required value="1000">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Terrain Type</label>
+            <div id="terrain-group" class="btn-group w-100" role="group">
+                <button type="button" class="btn btn-outline-primary" data-value="flat">Flat (-10%)</button>
+                <button type="button" class="btn btn-outline-primary active" data-value="backcountry">Backcountry (+0%)</button>
+                <button type="button" class="btn btn-outline-primary" data-value="hilly">Hilly (+10%)</button>
+                <button type="button" class="btn btn-outline-primary" data-value="mountainous">Mountainous (+20%)</button>
+            </div>
+            <input type="hidden" id="terrain" value="backcountry">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Packing Weight</label>
+            <div id="pack-group" class="btn-group w-100" role="group">
+                <button type="button" class="btn btn-outline-success active" data-value="light">Light (7% body weight, +0%)</button>
+                <button type="button" class="btn btn-outline-success" data-value="moderate">Moderate (14% body weight, +20%)</button>
+                <button type="button" class="btn btn-outline-success" data-value="heavy">Heavy (20% body weight, +40%)</button>
+                <button type="button" class="btn btn-outline-success" data-value="very_heavy">Very Heavy (25%+ body weight, +60%)</button>
+            </div>
+            <input type="hidden" id="pack" value="light">
+        </div>
+    </form>
+    <div class="mt-4" id="result" style="display:none;">
+        <h5>Base Naismith's Estimate: <span id="base-time"></span></h5>
+        <h5>Final Correction: <span id="correction"></span></h5>
+        <h4>Final Time: <span id="final-time"></span></h4>
+        <div class="mt-3">
+            <small class="text-muted" id="formula"></small>
+        </div>
+    </div>
+</div>
+<script src="hiking-time-calculator.js"></script>
+<script>
+function updateResult() {
+    const distance = parseFloat(document.getElementById('distance').value);
+    const elevation = parseFloat(document.getElementById('elevation').value);
+    const terrain = document.getElementById('terrain').value;
+    const pack = document.getElementById('pack').value;
+    if (isNaN(distance) || isNaN(elevation) || distance <= 0 || elevation < 0) {
+        document.getElementById('result').style.display = 'none';
+        return;
+    }
+    const base = window.naismithBaseTime(distance, elevation);
+    const terrainCorr = window.getTerrainCorrection(terrain);
+    const packCorr = window.getPackCorrection(pack);
+    const corr = terrainCorr + packCorr;
+    const final = base * (1 + corr / 100);
+    document.getElementById('base-time').textContent = window.formatTime(base);
+    document.getElementById('correction').textContent = (corr > 0 ? '+' : '') + corr + '%';
+    document.getElementById('final-time').textContent = window.formatTime(final);
+    document.getElementById('formula').innerHTML =
+        `Base time = 20 × ${distance} + 20 × 3 × (${elevation} / 2000) = <b>${base.toFixed(1)} min</b><br>` +
+        `Correction = (${terrainCorr > 0 ? '+' : ''}${terrainCorr}% terrain) + (${packCorr > 0 ? '+' : ''}${packCorr}% pack) = <b>${corr > 0 ? '+' : ''}${corr}%</b><br>` +
+        `Final time = ${base.toFixed(1)} × (1 + ${corr}/100) = <b>${final.toFixed(1)} min</b>`;
+    document.getElementById('result').style.display = '';
+}
+function setupButtonGroup(groupId, hiddenId) {
+    const group = document.getElementById(groupId);
+    group.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            group.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(hiddenId).value = btn.getAttribute('data-value');
+            updateResult();
+        });
+    });
+}
+document.addEventListener('DOMContentLoaded', function() {
+    setupButtonGroup('terrain-group', 'terrain');
+    setupButtonGroup('pack-group', 'pack');
+    document.getElementById('distance').addEventListener('input', updateResult);
+    document.getElementById('elevation').addEventListener('input', updateResult);
+    updateResult();
+});
+</script>
+</body>
+</html>
