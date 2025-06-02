@@ -56,6 +56,12 @@
 </div>
 <script src="hiking-time-calculator.js"></script>
 <script>
+function formatTime(minutes) {
+    const h = Math.floor(minutes / 60);
+    const m = Math.round(minutes % 60);
+    return `${h}h ${m}m`;
+}
+
 function updateResult() {
     const distance = parseFloat(document.getElementById('distance').value);
     const elevation = parseFloat(document.getElementById('elevation').value);
@@ -70,9 +76,9 @@ function updateResult() {
     const packCorr = window.getPackCorrection(pack);
     const corr = terrainCorr + packCorr;
     const final = base * (1 + corr / 100);
-    document.getElementById('base-time').textContent = window.formatTime(base);
+    document.getElementById('base-time').textContent = formatTime(base);
     document.getElementById('correction').textContent = (corr > 0 ? '+' : '') + corr + '%';
-    document.getElementById('final-time').textContent = window.formatTime(final);
+    document.getElementById('final-time').textContent = formatTime(final);
     document.getElementById('formula').innerHTML =
         `Base time = 20 × ${distance} + 20 × 3 × (${elevation} / 2000) = <b>${base.toFixed(1)} min</b><br>` +
         `Correction = (${terrainCorr > 0 ? '+' : ''}${terrainCorr}% terrain) + (${packCorr > 0 ? '+' : ''}${packCorr}% pack) = <b>${corr > 0 ? '+' : ''}${corr}%</b><br>` +
@@ -100,3 +106,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
+

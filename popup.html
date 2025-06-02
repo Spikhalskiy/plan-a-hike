@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hiking Time Estimator Settings</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      width: 300px;
+      padding: 15px;
+    }
+    h2 {
+      margin-top: 0;
+      color: #2F7844;
+      font-size: 16px;
+    }
+    .option-group {
+      margin-bottom: 15px;
+    }
+    .option-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .option-button {
+      background-color: #f0f0f0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .option-button.selected {
+      background-color: #2F7844;
+      color: white;
+      border-color: #2F7844;
+    }
+    .option-button:hover:not(.selected) {
+      background-color: #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+  <h2>Hiking Time Estimator Settings</h2>
+
+  <div class="option-group">
+    <div>Terrain Type:</div>
+    <div class="option-buttons" id="terrain-options">
+      <button class="option-button" data-value="flat">Flat</button>
+      <button class="option-button selected" data-value="backcountry">Backcountry</button>
+      <button class="option-button" data-value="hilly">Hilly</button>
+      <button class="option-button" data-value="mountainous">Mountainous</button>
+    </div>
+  </div>
+
+  <div class="option-group">
+    <div>Packing Weight:</div>
+    <div class="option-buttons" id="pack-options">
+      <button class="option-button" data-value="light">Light (7%)</button>
+      <button class="option-button selected" data-value="moderate">Moderate (14%)</button>
+      <button class="option-button" data-value="heavy">Heavy (20%)</button>
+      <button class="option-button" data-value="very_heavy">Very Heavy (25%+)</button>
+    </div>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
+

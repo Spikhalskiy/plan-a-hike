@@ -44,8 +44,8 @@ Default prepopulated value for:
 - distance: 5 miles, 
 - vertical gain: 1000 feet.
 
-## LLM Output
-hiking-time-calculator.html.
-Math javascript code that implements the calculations should be 
-in a separate file named hiking-time-calculator.js. UI JS code should be in the main html
-hiking-time-calculator.html
+## LLM Instructions
+- Math javascript code that implements the calculations should be
+in a file named `hiking-time-calculator.js`.
+
+- `hiking-time-calculator.html` with the UI. UI JS code should be in this file, not in `hiking-time-calculator.js`

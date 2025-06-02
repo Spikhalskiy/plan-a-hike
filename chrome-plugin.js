@@ -1,6 +1,30 @@
 // Hiking Time Estimator Chrome Extension Content Script
 // Looks for hike summary divs and displays Naismith's time estimate
 
+// Default settings
+let userSettings = {
+  terrain: 'backcountry',
+  packWeight: 'moderate'
+};
+
+// Load user settings from storage
+chrome.storage.sync.get({
+  terrain: 'backcountry',
+  packWeight: 'moderate'
+}, function(items) {
+  userSettings = items;
+  // Initial run with loaded settings
+  extractHikeStats();
+});
+
+// Listen for settings changes from popup
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+  if (request.action === 'settingsUpdated' && request.settings) {
+    userSettings = request.settings;
+    extractHikeStats();
+  }
+});
+
 // --- Main logic ---
 function createStyledDurationDiv(minutes, styleSource, summaryMode = false) {
     const h = Math.floor(minutes / 60);
@@ -16,7 +40,7 @@ function createStyledDurationDiv(minutes, styleSource, summaryMode = false) {
         div.style.marginLeft = styleSource?.style.marginLeft || '16px';
         div.style.marginTop = styleSource?.style.marginTop || '0px';
         // Use required classes for label and time, and 18px font size for time
-        div.innerHTML = `<span class="SummaryTrackStat-module__statLabel--g0_e7">Duration</span><span class="MuiTypography-root MuiTypography-body1 SummaryTrackStat-module__stat--wJ0VF css-5c2nyf" style="font-size: 18px; color: #000;">${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}</span>`;
+        div.innerHTML = `<span class="SummaryTrackStat-module__statLabel--g0_e7">Duration</span><p class="MuiTypography-root MuiTypography-body1 SummaryTrackStat-module__stat--wJ0VF css-5c2nyf" style="font-size: 18px;">${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}</p>`;
     } else {
         // Route editing: icon grey, time big, mimic descent div style
         div.style.display = 'flex';
@@ -66,8 +90,8 @@ function extractHikeStats() {
         });
         if (distance !== null && ascent !== null && descent !== null && descentDiv) {
             const base = window.naismithBaseTime(distance, ascent);
-            const terrainCorrection = window.getTerrainCorrection('backcountry');
-            const packCorrection = window.getPackCorrection('moderate');
+            const terrainCorrection = window.getTerrainCorrection(userSettings.terrain);
+            const packCorrection = window.getPackCorrection(userSettings.packWeight);
             const correction = terrainCorrection + packCorrection;
             const corrected = base * (1 + correction / 100);
             // Remove any previous estimate
@@ -114,8 +138,8 @@ function extractHikeStats() {
         });
         if (distance !== null && ascent !== null && ascentDiv) {
             const base = window.naismithBaseTime(distance, ascent);
-            const terrainCorrection = window.getTerrainCorrection('backcountry');
-            const packCorrection = window.getPackCorrection('moderate');
+            const terrainCorrection = window.getTerrainCorrection(userSettings.terrain);
+            const packCorrection = window.getPackCorrection(userSettings.packWeight);
             const correction = terrainCorrection + packCorrection;
             const corrected = base * (1 + correction / 100);
             // Remove any previous estimate
@@ -127,9 +151,6 @@ function extractHikeStats() {
         }
     }
 }
-
-// Run on page load
-extractHikeStats();
 
 // Debounced DOM observer
 let debounceTimer = null;

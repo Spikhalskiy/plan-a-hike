@@ -1,3 +1,10 @@
+## Purpose
+
+Implement a Chrome plugin that displays hiking time estimates next to route info on a web page.
+It should use code from `hiking-time-calculator.js` to calculate the estimates.
+Below are the examples of the HTML divs that should be detected to display the hiking time estimates.
+Distance and Ascent values should be extracted from such divs.
+
 ## Example of a div on a route editing page
 
 ```html
@@ -21,3 +28,19 @@ Make it a separate div.
 Mimic the style of the Ascent div.
 Use `SummaryTrackStat-module__statLabel--g0_e7` CSS class for the label.
 Use `SummaryTrackStat-module__stat--wJ0VF` and `css-5c2nyf` CSS classes for the time, also use 18px font size.
+
+## Estimation Configuration
+When a user clicks on the plugin icon in the Chrome toolbar, it should open a small window with the following options:
+1. Terrain Type. Supported values are
+    1. Flat
+    2. Backcountry
+    3. Hilly
+    4. Mountainous:
+2. Packing Weight. Supported values are
+    1. Light (7% body weight)
+    2. Moderate (14% body weight)
+    3. Heavy (20% body weight) 
+    4. Very Heavy (25%+ body weight)
+These inputs should be implemented as adjacent buttons for an easy selection, one button for each value.
+These values should be used and sent as Terrain Type and Packing Weight parameters to the `hiking-time-calculator.js` code for the calculations.
+It should use `Backcountry` as a default Terrain Type and `Moderate` as a default Packing Weight.

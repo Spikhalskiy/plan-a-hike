@@ -2,13 +2,18 @@
   "manifest_version": 3,
   "name": "Hiking Time Estimator",
   "version": "1.0",
-  "description": "Estimates hiking time using Naismith's Rule for any hike summary on the page.",
-  "permissions": ["activeTab", "scripting"],
+  "description": "Estimates hiking time for Gaia GPS hikes.",
+  "permissions": ["activeTab", "scripting", "storage"],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["hiking-time-calculator.js", "chrome-plugin.js"]
     }
-  ]
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "img/chrome_bar_16.png"
+    }
+  }
 }
-
