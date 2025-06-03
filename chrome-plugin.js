@@ -53,6 +53,13 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 
 // --- Main logic ---
+// Helper function to format minutes as hh:mm
+function formatAsHHMM(minutes) {
+    const h = Math.floor(minutes / 60);
+    const m = Math.round(minutes % 60);
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+}
+
 function createStyledDurationDiv(minutes, styleSource, summaryMode = false, calculationDetails = null) {
     const h = Math.floor(minutes / 60);
     const m = Math.round(minutes % 60);
@@ -80,13 +87,6 @@ function createStyledDurationDiv(minutes, styleSource, summaryMode = false, calc
     // Add hover tooltip showing the calculation breakdown including break time
     if (calculationDetails) {
         const { base, terrainCorrection, packCorrection, correction, corrected, breakTime, distance, ascent, final } = calculationDetails;
-
-        // Format times as hh:mm
-        const formatAsHHMM = (minutes) => {
-            const h = Math.floor(minutes / 60);
-            const m = Math.round(minutes % 60);
-            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-        };
 
         // Calculate individual components for the detailed breakdown
         const distanceTime = 20 * distance;  // 20 min per mile
@@ -240,6 +240,122 @@ function extractHikeStats() {
             ascentDiv.parentNode.insertBefore(estDiv, ascentDiv.nextSibling);
         }
     }
+
+    // --- Route Sharing Page ---
+    // Find all card containers on the page
+    const cardContainers = document.querySelectorAll('div.Card-module__card--iAbp1');
+
+    // Process only the card with "STATS" title
+    for (const cardContainer of cardContainers) {
+        const cardHeader = cardContainer.querySelector('div.Card-module__cardHeader--KHysE');
+        const cardTitle = cardHeader?.querySelector('h2.Card-module__cardHeaderTitle--TW_Do');
+
+        // Check if this is the STATS card
+        if (cardTitle && cardTitle.textContent.trim() === 'STATS') {
+            const statsItem = cardContainer.querySelector('div.Stats-module__statsItem--DlArF');
+            const statsInfo = cardContainer.querySelector('div.Stats-module__statsInfo--jbi9I');
+
+            if (statsItem && statsInfo) {
+                // Extract distance from the main stats item
+                let distance = null;
+                const distanceValueDiv = statsItem.querySelector('div.Stats-module__statsItemTextValue--DE1cK');
+                if (distanceValueDiv) {
+                    const distanceText = distanceValueDiv.textContent;
+                    const distanceMatch = distanceText.match(/([\d,.]+)/);
+                    if (distanceMatch) {
+                        distance = parseFloat(distanceMatch[1].replace(/,/g, ''));
+                    }
+                }
+
+                // Extract ascent and descent from the stats info
+                let ascent = null, descent = null;
+                const listItems = statsInfo.querySelectorAll('ul li');
+                let descentLi = null;
+
+                listItems.forEach(li => {
+                    const strong = li.querySelector('strong');
+                    const label = li.querySelector('div.Stats-module__statLabel--Jk4cC');
+
+                    if (strong && label) {
+                        const valueText = strong.textContent;
+                        const valueMatch = valueText.match(/([\d,.]+)/);
+                        const labelText = label.textContent.trim().toLowerCase();
+
+                        if (valueMatch) {
+                            const value = parseFloat(valueMatch[1].replace(/,/g, ''));
+                            if (labelText.includes('ascent') && ascent === null) {
+                                ascent = value;
+                            } else if (labelText.includes('descent') && descent === null) {
+                                descent = value;
+                                descentLi = li;
+                            }
+                        }
+                    }
+                });
+
+                if (distance !== null && ascent !== null && descent !== null && descentLi) {
+                    const base = window.naismithBaseTime(distance, ascent);
+                    const terrainCorrection = window.getTerrainCorrection(userSettings.terrain);
+                    const packCorrection = window.getPackCorrection(userSettings.packWeight);
+                    const correction = terrainCorrection + packCorrection;
+                    const corrected = base * (1 + correction / 100);
+                    const breakTime = window.calculateBreakTime(corrected);
+                    const final = corrected + breakTime;
+
+                    const calculationDetails = { base, terrainCorrection, packCorrection, correction, corrected, breakTime, distance, ascent, final };
+
+                    // Remove any previous estimate
+                    const prev = statsInfo.querySelector('.naismith-estimate');
+                    if (prev) prev.remove();
+
+                    // Create a new li element with duration
+                    const durationLi = document.createElement('li');
+                    durationLi.className = 'naismith-estimate';
+
+                    // Format time as hh:mm
+                    const h = Math.floor(final / 60);
+                    const m = Math.round(final % 60);
+                    const formattedTime = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+                    // Set the content mimicking the style of the descent li
+                    durationLi.innerHTML = `<strong>${formattedTime}</strong><div class="Stats-module__statLabel--Jk4cC">Duration</div>`;
+
+                    // Add hover tooltip
+                    durationLi.addEventListener('mouseenter', (event) => {
+                        const tooltipContent = `Base Naismith's time: ${formatAsHHMM(base)} 
+\t${distance} mi distance: ${formatAsHHMM(20 * distance)}
+\t${ascent} ft ascent: ${formatAsHHMM(20 * 3 * (ascent / 2000))}
+Terrain correction: ${terrainCorrection}%
+Pack weight correction: ${packCorrection}%
+Breaks time: ${formatAsHHMM(breakTime)}
+Final estimated hiking time: ${formatAsHHMM(final)}`;
+
+                        tooltip.textContent = tooltipContent;
+                        tooltip.style.display = 'block';
+
+                        // Get the current mouse position and element position for better tooltip placement
+                        const rect = durationLi.getBoundingClientRect();
+                        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+                        // Position tooltip below the element instead of using fixed coordinates
+                        tooltip.style.left = `${rect.left}px`;
+                        tooltip.style.top = `${rect.bottom + scrollTop + 5}px`;
+                    });
+
+                    durationLi.addEventListener('mouseleave', () => {
+                        tooltip.style.display = 'none';
+                    });
+
+                    // Add the duration li to the ul
+                    const ul = statsInfo.querySelector('ul');
+                    ul.appendChild(durationLi);
+                }
+            }
+
+            // Process only the first STATS card
+            break;
+        }
+    }
 }
 
 // Debounced DOM observer
@@ -249,7 +365,7 @@ const observer = new MutationObserver(() => {
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
         // Only refresh if stats have changed
-        const statsContainer = document.querySelector('div.Stats-module__stats--KW1GI') || document.querySelector('div.TrackDetailsSidebar-module__trackStatsContainer--tQ5rv');
+        const statsContainer = document.querySelector('div.Stats-module__stats--KW1GI') || document.querySelector('div.TrackDetailsSidebar-module__trackStatsContainer--tQ5rv') || document.querySelector('div.Card-module__card--iAbp1');
         let statsText = '';
         if (statsContainer) {
             statsText = statsContainer.innerText;
