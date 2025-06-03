@@ -41,7 +41,7 @@ Make it a separate `li` element.
 Mimic the style of the Descent `li` element.
 Use `Stats-module__statLabel--Jk4cC` CSS class for the label.
 
-## Estimation Configuration
+## Estimation Configuration Popup
 When a user clicks on the plugin icon in the Chrome toolbar, it should open a small window with the following options:
 1. Terrain Type. Supported values are
     1. Flat
@@ -56,6 +56,7 @@ When a user clicks on the plugin icon in the Chrome toolbar, it should open a sm
 These inputs should be implemented as adjacent buttons for an easy selection, one button for each value.
 These values should be used and sent as Terrain Type and Packing Weight parameters to the `hiking-time-calculator.js` code for the calculations.
 It should use `Backcountry` as a default Terrain Type and `Moderate` as a default Packing Weight.
+There should be no "Settings saved" or other messages like that appearing when user changes settings. 
 
 ## Hover
 
@@ -72,3 +73,9 @@ Breaks time: hh:mm
 Final estimated hiking time: hh:mm
 ```
 The tooltip background should be white with black font. Give it rounded corners (6px border radius) with a 2px shade.
+
+## Plugin scope
+
+This Chrome plugin should work and be available only on http://www.gaiagps.com and https://www.gaiagps.com website. 
+It should be disabled and not have any popup on other websites.
+It should not request any permissions to access pages on any other websites.

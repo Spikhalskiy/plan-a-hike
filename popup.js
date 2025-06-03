@@ -1,36 +1,39 @@
 // Hiking Time Estimator Popup Script
 document.addEventListener('DOMContentLoaded', function() {
-  // Load saved settings
-  chrome.storage.sync.get({
-    terrain: 'backcountry',
-    packWeight: 'moderate'
-  }, function(items) {
-    // Set UI to match saved settings
-    selectButton('terrain-options', items.terrain);
-    selectButton('pack-options', items.packWeight);
+  // First check if we're on a Gaia GPS page
+  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+    if (tabs[0] && tabs[0].url && tabs[0].url.includes('gaiagps.com')) {
+      // We're on a Gaia GPS page, initialize the popup
+      initializePopup();
+    } else {
+      // Not on Gaia GPS, show a message
+      document.body.innerHTML = '<div style="padding: 20px; text-align: center;">This extension only works on Gaia GPS website.</div>';
+    }
   });
 
-  // Set up click handlers for terrain options
-  document.querySelectorAll('#terrain-options .option-button').forEach(button => {
-    button.addEventListener('click', function() {
-      const value = this.getAttribute('data-value');
-      selectButton('terrain-options', value);
-      saveSettings();
+  function initializePopup() {
+    // Load saved settings
+    chrome.storage.sync.get(['terrain', 'packWeight'], function(items) {
+      // Initialize terrain buttons
+      initializeButtons('terrain-options', items.terrain || 'moderate');
+      
+      // Initialize pack weight buttons
+      initializeButtons('pack-options', items.packWeight || 'medium');
+      
+      // Add event listeners to all buttons
+      document.querySelectorAll('.btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const group = this.closest('.btn-group').id;
+          selectButton(group, this.getAttribute('data-value'));
+          saveSettings();
+        });
+      });
     });
-  });
-
-  // Set up click handlers for pack weight options
-  document.querySelectorAll('#pack-options .option-button').forEach(button => {
-    button.addEventListener('click', function() {
-      const value = this.getAttribute('data-value');
-      selectButton('pack-options', value);
-      saveSettings();
-    });
-  });
-
-  // Helper function to select a button and deselect others in the same group
+  }
+  
+  // Select the appropriate button in a group
   function selectButton(groupId, value) {
-    document.querySelectorAll(`#${groupId} .option-button`).forEach(btn => {
+    document.querySelectorAll(`#${groupId} .btn`).forEach(btn => {
       if (btn.getAttribute('data-value') === value) {
         btn.classList.add('selected');
       } else {
@@ -39,31 +42,19 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  // Initialize buttons based on saved settings
+  function initializeButtons(groupId, selectedValue) {
+    selectButton(groupId, selectedValue);
+  }
+
   // Save settings to Chrome storage
   function saveSettings() {
     const terrain = document.querySelector('#terrain-options .selected').getAttribute('data-value');
     const packWeight = document.querySelector('#pack-options .selected').getAttribute('data-value');
-
+    
     chrome.storage.sync.set({
-      terrain: terrain,
-      packWeight: packWeight
-    }, function() {
-      // Update status
-      const status = document.getElementById('status');
-      status.textContent = 'Settings saved!';
-      setTimeout(function() {
-        status.textContent = 'Settings are automatically saved';
-      }, 1500);
-
-      // Notify content script that settings have changed
-      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        if (tabs[0]) {
-          chrome.tabs.sendMessage(tabs[0].id, {
-            action: 'settingsUpdated',
-            settings: { terrain, packWeight }
-          });
-        }
-      });
+      'terrain': terrain,
+      'packWeight': packWeight
     });
   }
 });
