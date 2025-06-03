@@ -1,6 +1,33 @@
 // Hiking Time Estimator Chrome Extension Content Script
 // Looks for hike summary divs and displays Naismith's time estimate
 
+// Inject CSS for custom tooltip
+const tooltipStyle = document.createElement('style');
+tooltipStyle.textContent = `
+.naismith-tooltip {
+  position: absolute;
+  background-color: white;
+  color: black;
+  border-radius: 6px;
+  padding: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  z-index: 1000;
+  max-width: 300px;
+  white-space: pre;
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+  display: none;
+  pointer-events: none;
+  tab-size: 4;
+}
+`;
+document.head.appendChild(tooltipStyle);
+
+// Create tooltip element
+const tooltip = document.createElement('div');
+tooltip.className = 'naismith-tooltip';
+document.body.appendChild(tooltip);
+
 // Default settings
 let userSettings = {
   terrain: 'backcountry',
@@ -26,7 +53,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 
 // --- Main logic ---
-function createStyledDurationDiv(minutes, styleSource, summaryMode = false) {
+function createStyledDurationDiv(minutes, styleSource, summaryMode = false, calculationDetails = null) {
     const h = Math.floor(minutes / 60);
     const m = Math.round(minutes % 60);
     const div = document.createElement('div');
@@ -47,13 +74,62 @@ function createStyledDurationDiv(minutes, styleSource, summaryMode = false) {
         div.style.alignItems = 'center';
         div.style.marginLeft = styleSource?.style.marginLeft || '12px';
         // Mimic Descent div: icon #ACACAE, time 16px #000000
-        div.innerHTML = `<span style="font-size:16px;color:#ACACAE;margin-right:6px;">⏱</span><span style="font-size:16px;font-weight:500;color:#000000;">${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}</span>`;
+        div.innerHTML = `<span style="font-size:16px;color:#ACACAE;margin-right:2px;">⏱</span><span style="font-size:16px;font-weight:500;color:#000000;">${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}</span>`;
     }
+
+    // Add hover tooltip showing the calculation breakdown including break time
+    if (calculationDetails) {
+        const { base, terrainCorrection, packCorrection, correction, corrected, breakTime, distance, ascent, final } = calculationDetails;
+
+        // Format times as hh:mm
+        const formatAsHHMM = (minutes) => {
+            const h = Math.floor(minutes / 60);
+            const m = Math.round(minutes % 60);
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        };
+
+        // Calculate individual components for the detailed breakdown
+        const distanceTime = 20 * distance;  // 20 min per mile
+        const ascentTime = 20 * 3 * (ascent / 2000);  // 20 min × 3 × (ascent / 2000 ft)
+
+        // Format the tooltip exactly as specified in the documentation with preserved tabulation
+        // Using actual tab characters for indentation as per the documentation
+        const tooltipContent = `Base Naismith's time: ${formatAsHHMM(base)} 
+\t${distance} mi distance: ${formatAsHHMM(distanceTime)}
+\t${ascent} ft ascent: ${formatAsHHMM(ascentTime)}
+Terrain correction: ${terrainCorrection}%
+Pack weight correction: ${packCorrection}%
+Breaks time: ${formatAsHHMM(breakTime)}
+Final estimated hiking time: ${formatAsHHMM(final)}`;
+
+        // Set tooltip on both the main div and all child elements to ensure it works in all cases
+        div.addEventListener('mouseenter', () => {
+            tooltip.textContent = tooltipContent;
+            tooltip.style.display = 'block';
+            tooltip.style.left = `${div.getBoundingClientRect().left}px`;
+            tooltip.style.top = `${div.getBoundingClientRect().bottom + 5}px`;
+        });
+        div.addEventListener('mouseleave', () => {
+            tooltip.style.display = 'none';
+        });
+    } else {
+        const basicTooltip = `Estimated hiking time including breaks (${h}h ${m}m)`;
+        div.addEventListener('mouseenter', () => {
+            tooltip.textContent = basicTooltip;
+            tooltip.style.display = 'block';
+            tooltip.style.left = `${div.getBoundingClientRect().left}px`;
+            tooltip.style.top = `${div.getBoundingClientRect().bottom + 5}px`;
+        });
+        div.addEventListener('mouseleave', () => {
+            tooltip.style.display = 'none';
+        });
+    }
+
     return div;
 }
 
 function extractHikeStats() {
-    if (typeof window.naismithBaseTime !== 'function') return;
+    if (typeof window.naismithBaseTime !== 'function' || typeof window.calculateBreakTime !== 'function') return;
     // --- Route Editing Page ---
     const statsContainer = document.querySelector('div.Stats-module__stats--KW1GI');
     if (statsContainer) {
@@ -94,11 +170,18 @@ function extractHikeStats() {
             const packCorrection = window.getPackCorrection(userSettings.packWeight);
             const correction = terrainCorrection + packCorrection;
             const corrected = base * (1 + correction / 100);
+            const breakTime = window.calculateBreakTime(corrected);
+            const final = corrected + breakTime;
+
+            const calculationDetails = { base, terrainCorrection, packCorrection, correction, corrected, breakTime, distance, ascent, final };
+
             // Remove any previous estimate
             const prev = descentDiv.parentNode.querySelector('.naismith-estimate');
             if (prev) prev.remove();
+
             // Insert styled duration div after descentDiv
-            const estDiv = createStyledDurationDiv(corrected, descentStyle, false);
+            const estDiv = createStyledDurationDiv(final, descentStyle, false, calculationDetails);
+
             if (descentDiv.nextSibling) {
                 descentDiv.parentNode.insertBefore(estDiv, descentDiv.nextSibling);
             } else {
@@ -142,11 +225,18 @@ function extractHikeStats() {
             const packCorrection = window.getPackCorrection(userSettings.packWeight);
             const correction = terrainCorrection + packCorrection;
             const corrected = base * (1 + correction / 100);
+            const breakTime = window.calculateBreakTime(corrected);
+            const final = corrected + breakTime;
+
+            const calculationDetails = { base, terrainCorrection, packCorrection, correction, corrected, breakTime, distance, ascent, final };
+
             // Remove any previous estimate
             const prev = ascentDiv.parentNode.querySelector('.naismith-estimate');
             if (prev) prev.remove();
+
             // Insert styled duration div to the right of ascentDiv
-            const estDiv = createStyledDurationDiv(corrected, ascentStyle, true);
+            const estDiv = createStyledDurationDiv(final, ascentStyle, true, calculationDetails);
+
             ascentDiv.parentNode.insertBefore(estDiv, ascentDiv.nextSibling);
         }
     }

@@ -48,6 +48,7 @@
     <div class="mt-4" id="result" style="display:none;">
         <h5>Base Naismith's Estimate: <span id="base-time"></span></h5>
         <h5>Final Correction: <span id="correction"></span></h5>
+        <h5>Break Time: <span id="break-time"></span></h5>
         <h4>Final Time: <span id="final-time"></span></h4>
         <div class="mt-3">
             <small class="text-muted" id="formula"></small>
@@ -75,16 +76,23 @@ function updateResult() {
     const terrainCorr = window.getTerrainCorrection(terrain);
     const packCorr = window.getPackCorrection(pack);
     const corr = terrainCorr + packCorr;
-    const final = base * (1 + corr / 100);
+    const correctedTime = base * (1 + corr / 100);
+    const breakTime = window.calculateBreakTime(correctedTime);
+    const final = correctedTime + breakTime;
+
     document.getElementById('base-time').textContent = formatTime(base);
     document.getElementById('correction').textContent = (corr > 0 ? '+' : '') + corr + '%';
+    document.getElementById('break-time').textContent = formatTime(breakTime);
     document.getElementById('final-time').textContent = formatTime(final);
     document.getElementById('formula').innerHTML =
         `Base time = 20 × ${distance} + 20 × 3 × (${elevation} / 2000) = <b>${base.toFixed(1)} min</b><br>` +
         `Correction = (${terrainCorr > 0 ? '+' : ''}${terrainCorr}% terrain) + (${packCorr > 0 ? '+' : ''}${packCorr}% pack) = <b>${corr > 0 ? '+' : ''}${corr}%</b><br>` +
-        `Final time = ${base.toFixed(1)} × (1 + ${corr}/100) = <b>${final.toFixed(1)} min</b>`;
+        `Corrected time = ${base.toFixed(1)} × (1 + ${corr}/100) = <b>${correctedTime.toFixed(1)} min</b><br>` +
+        `Break time = 10 min per hour = <b>${breakTime} min</b><br>` +
+        `Final time = ${correctedTime.toFixed(1)} + ${breakTime} = <b>${final.toFixed(1)} min</b>`;
     document.getElementById('result').style.display = '';
 }
+
 function setupButtonGroup(groupId, hiddenId) {
     const group = document.getElementById(groupId);
     group.querySelectorAll('button').forEach(btn => {
@@ -96,6 +104,7 @@ function setupButtonGroup(groupId, hiddenId) {
         });
     });
 }
+
 document.addEventListener('DOMContentLoaded', function() {
     setupButtonGroup('terrain-group', 'terrain');
     setupButtonGroup('pack-group', 'pack');
@@ -106,4 +115,3 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
-

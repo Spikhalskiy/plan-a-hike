@@ -21,3 +21,7 @@ window.getPackCorrection = function(pack) {
     }
 };
 
+window.calculateBreakTime = function(hikingTimeMinutes) {
+    // Add 10 minutes of break time for every hour of hiking
+    return Math.floor(hikingTimeMinutes / 60) * 10;
+};

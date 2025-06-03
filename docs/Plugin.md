@@ -44,3 +44,19 @@ When a user clicks on the plugin icon in the Chrome toolbar, it should open a sm
 These inputs should be implemented as adjacent buttons for an easy selection, one button for each value.
 These values should be used and sent as Terrain Type and Packing Weight parameters to the `hiking-time-calculator.js` code for the calculations.
 It should use `Backcountry` as a default Terrain Type and `Moderate` as a default Packing Weight.
+
+## Hover
+
+Hover over the added divs with the estimates should display the tooltip with the calculation breakdown.
+This should work on all divs with the duration estimates that we add in this plugin.
+The tooltip should display the following information (preserve tabulation, make sure css styles are rendering tabs correctly):
+```
+Base Naismith's time: hh:mm 
+<tab>M mi distance: hh:mm
+<tab>N fi ascent: hh:mm
+Terrain correction: X%
+Pack weight correction: Y%
+Breaks time: hh:mm
+Final estimated hiking time: hh:mm
+```
+The tooltip background should be white with black font. Give it rounded corners (6px border radius) with a 2px shade.

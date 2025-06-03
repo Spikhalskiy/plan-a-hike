@@ -10,8 +10,8 @@ Let's use 20 minutes per mile as the speed for our Naismith's base calculation.
 2000 feet of vertical gain is equivalent to an additional 3 miles in distance.
 
 We also should apply a correction in % over it.
-
 To calculate this correction, let's ask for two more categorical inputs:
+
 1. Terrain Type. Supported values are
     1. Flat: -10%
     2. Backcountry: +0% - default
@@ -25,7 +25,10 @@ To calculate this correction, let's ask for two more categorical inputs:
 
 To calculate the final correction %, we should sum the corrections for each of the three inputs.
 
-The outputs are: Naismith's estimate, correction %, corrected estimate.
+One more correction that we apply should be for taking breaks. 
+Let's add the additional 10 minutes for every hour of hiking time to get the final result.
+
+The outputs are: Naismith's estimate, correction %, breaks time, final corrected estimate.
 
 ## UI description
 
