@@ -1,0 +1,168 @@
+/* chrome-plugin.css: Common styles for popup and content script */
+
+/* Popup styles - these are only loaded in the popup context */
+.hiking-estimator-popup body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  width: 300px;
+  padding: 15px;
+  color: #333;
+}
+.hiking-estimator-popup h2 {
+  margin-top: 0;
+  color: #2F7844;
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+/* Option Groups */
+.hiking-estimator-popup .option-group {
+  margin-bottom: 15px;
+}
+.hiking-estimator-popup .option-group > div:first-child {
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+.hiking-estimator-popup .option-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* Option Buttons */
+.hiking-estimator-popup .option-button {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.hiking-estimator-popup .option-button.selected {
+  background-color: #2F7844;
+  color: white;
+  border-color: #2F7844;
+}
+.hiking-estimator-popup .option-button:hover:not(.selected) {
+  background-color: #e0e0e0;
+}
+
+/* Mode Toggle Styles */
+.hiking-estimator-popup .mode-toggle-container {
+  margin-bottom: 20px;
+}
+.hiking-estimator-popup .mode-toggle {
+  display: flex;
+  position: relative;
+  background-color: #e0e0e0;
+  border-radius: 30px;
+  height: 30px;
+  width: 250px;
+  margin: 10px auto;
+}
+.hiking-estimator-popup .mode-toggle-slider {
+  position: absolute;
+  height: 30px;
+  width: 125px;
+  border-radius: 30px;
+  background-color: #2F7844;
+  transition: transform 0.3s ease;
+}
+.hiking-estimator-popup .mode-toggle-slider.day-hike {
+  transform: translateX(0);
+}
+.hiking-estimator-popup .mode-toggle-slider.custom {
+  opacity: 0;
+}
+.hiking-estimator-popup .mode-toggle-slider.backpacking {
+  transform: translateX(125px);
+}
+.hiking-estimator-popup .mode-toggle-option {
+  flex: 1;
+  text-align: center;
+  line-height: 30px;
+  cursor: pointer;
+  z-index: 1;
+  font-weight: 500;
+  color: #333;
+}
+.hiking-estimator-popup .mode-toggle-option.active {
+  color: white;
+}
+
+/* Status Message */
+.hiking-estimator-popup .status {
+  height: 20px;
+  text-align: center;
+  color: #2F7844;
+  font-style: italic;
+  font-size: 14px;
+}
+
+/* Tooltip Styles (for content script) */
+.hiking-estimator-tooltip {
+  position: absolute;
+  background-color: white;
+  color: black;
+  border-radius: 6px;
+  padding: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  z-index: 1000;
+  max-width: 300px;
+  white-space: pre;
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+  display: none;
+  pointer-events: auto;
+}
+
+.hiking-estimator-tooltip .mode-toggle {
+  margin: 10px 0;
+  display: flex;
+  position: relative;
+  background-color: #e0e0e0;
+  border-radius: 30px;
+  height: 30px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.hiking-estimator-tooltip .mode-slider {
+  position: absolute;
+  height: 30px;
+  width: 50%;
+  border-radius: 30px;
+  background-color: #2F7844;
+  transition: transform 0.3s ease;
+  z-index: 0;
+}
+.hiking-estimator-tooltip .mode-slider.day-hike {
+  transform: translateX(0);
+}
+.hiking-estimator-tooltip .mode-slider.custom {
+  opacity: 0;
+}
+.hiking-estimator-tooltip .mode-slider.backpacking {
+  transform: translateX(100%);
+}
+.hiking-estimator-tooltip .mode-option {
+  flex: 1;
+  text-align: center;
+  line-height: 30px;
+  cursor: pointer;
+  z-index: 1;
+  font-weight: 500;
+  color: #333;
+  user-select: none;
+}
+.hiking-estimator-tooltip .mode-option.active {
+  color: white;
+}
+
+/* Elements added to the duration estimates */
+.hiking-estimator-estimate {
+  /* This class is used to identify and target duration estimate elements
+   Most styling is applied via inline styles in the JS, but you can add
+   global styles here if needed */
+}

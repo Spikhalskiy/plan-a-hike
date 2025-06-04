@@ -87,7 +87,7 @@ Distance and Ascent values should be extracted from such divs.
 This `div` displays distance of 8.6 miles, Ascent of 1,734 feet, and Descent of 437 feet.
 Display an estimate in a format of `⏱ hh:mm` to the right from the Descent div.
 Mimic the style of the Descent div.
-Use #ACACAE `⏱` for the `⏱` icon and font size 16px and color #000000 for `hh:mm` text.
+Use #ACACAE `⏱` for the `⏱` icon and simple `<p>` tag for `hh:mm` text.
 
 ## Example of a div on a Route Summary Page
 ```html
@@ -133,8 +133,13 @@ When a user clicks on the plugin icon in the Chrome toolbar, it should open a sm
 
 Above the options, this popup should have a Mode Toggle, representing the current configuration and allowing user
 to switch between "Day Hike" and "Backpacking" modes.
+
 When a user changes anything in the configuration popup, the displayed estimates 
 and details in the hover tooltip should be immediately updated accordingly.
+
+When the configuration window popup opens, it should read the current configuration from the page and 
+set the toggle and inputs accordingly before rendering them.
+So the users don't see UI elements changing from their default state immediately after opening the popup.
 
 ## Hover
 

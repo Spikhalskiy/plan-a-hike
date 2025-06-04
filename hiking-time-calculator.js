@@ -1,27 +1,65 @@
-// Calculation logic for Naismith's Rule and corrections
-window.naismithBaseTime = function(distance, elevation) {
-    // Naismith's Rule: 20 min per mile, 2000 ft = 3 miles
-    // base = 20 * distance + 20 * 3 * (elevation / 2000)
-    return 20 * distance + 20 * 3 * (elevation / 2000);
-};
-window.getTerrainCorrection = function(terrain) {
-    switch (terrain) {
-        case 'flat': return -10;
-        case 'hilly': return 10;
-        case 'mountainous': return 20;
-        default: return 0;
-    }
-};
-window.getPackCorrection = function(pack) {
-    switch (pack) {
-        case 'moderate': return 20;
-        case 'heavy': return 40;
-        case 'very_heavy': return 60;
-        default: return 0;
-    }
+/**
+ * Hiking Time Calculator
+ * Implementation of Naismith's Rule with terrain and pack weight corrections
+ */
+
+// Constants
+const MINUTES_PER_MILE = 20;
+const FEET_PER_EQUIVALENT_MILE = 2000;
+const EQUIVALENT_MILES_PER_ASCENT = 3;
+const BREAK_MINUTES_PER_HOUR = 10;
+
+// Object mapping for terrain correction percentages
+const TERRAIN_CORRECTIONS = {
+    'flat': -10,
+    'backcountry': 0,  // default
+    'hilly': 10,
+    'mountainous': 20
 };
 
+// Object mapping for pack weight correction percentages
+const PACK_CORRECTIONS = {
+    'light': 0,        // default (7% body weight)
+    'moderate': 20,    // 14% body weight
+    'heavy': 40,       // 20% body weight
+    'very_heavy': 60   // 25%+ body weight
+};
+
+/**
+ * Calculate base time according to Naismith's Rule
+ * @param {number} distance - Distance in miles
+ * @param {number} elevation - Vertical gain in feet
+ * @return {number} - Base time in minutes
+ */
+window.naismithBaseTime = function(distance, elevation) {
+    const distanceTime = MINUTES_PER_MILE * distance;
+    const ascentTime = MINUTES_PER_MILE * EQUIVALENT_MILES_PER_ASCENT * (elevation / FEET_PER_EQUIVALENT_MILE);
+    return distanceTime + ascentTime;
+};
+
+/**
+ * Get correction percentage based on terrain type
+ * @param {string} terrain - Terrain type (flat, backcountry, hilly, mountainous)
+ * @return {number} - Correction percentage
+ */
+window.getTerrainCorrection = function(terrain) {
+    return TERRAIN_CORRECTIONS[terrain] || 0;
+};
+
+/**
+ * Get correction percentage based on pack weight
+ * @param {string} pack - Pack weight category (light, moderate, heavy, very_heavy)
+ * @return {number} - Correction percentage
+ */
+window.getPackCorrection = function(pack) {
+    return PACK_CORRECTIONS[pack] || 0;
+};
+
+/**
+ * Calculate break time based on hiking duration
+ * @param {number} hikingTimeMinutes - Base hiking time in minutes
+ * @return {number} - Break time in minutes
+ */
 window.calculateBreakTime = function(hikingTimeMinutes) {
-    // Add 10 minutes of break time for every hour of hiking
-    return Math.floor(hikingTimeMinutes / 60) * 10;
+    return Math.floor(hikingTimeMinutes / 60) * BREAK_MINUTES_PER_HOUR;
 };
