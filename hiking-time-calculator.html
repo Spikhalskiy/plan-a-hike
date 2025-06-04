@@ -10,6 +10,52 @@
         .container { max-width: 500px; }
         #result h4 { color: #0d6efd; }
         .btn-group .btn { min-width: 120px; }
+
+        /* Mode Toggle Styles */
+        .mode-toggle-container {
+            margin-bottom: 20px;
+        }
+        .mode-toggle {
+            display: flex;
+            position: relative;
+            background-color: #e0e0e0;
+            border-radius: 30px;
+            height: 40px;
+            width: 100%;
+            margin: 10px auto;
+            overflow: hidden;
+        }
+        .mode-toggle-option {
+            flex: 1;
+            text-align: center;
+            line-height: 40px;
+            cursor: pointer;
+            z-index: 1;
+            transition: color 0.3s;
+            font-weight: 500;
+        }
+        .mode-toggle-option.active {
+            color: white;
+        }
+        .mode-toggle-slider {
+            position: absolute;
+            height: 40px;
+            width: 50%;
+            border-radius: 30px;
+            background-color: #2F7844;
+            transition: transform 0.3s ease;
+            z-index: 0;
+        }
+        .mode-toggle-slider.day-hike {
+            transform: translateX(0);
+        }
+        .mode-toggle-slider.custom {
+            /* Hide the slider in custom mode */
+            opacity: 0;
+        }
+        .mode-toggle-slider.backpacking {
+            transform: translateX(100%);
+        }
     </style>
 </head>
 <body>
@@ -24,6 +70,18 @@
             <label for="elevation" class="form-label">Vertical Gain (feet)</label>
             <input type="number" step="1" class="form-control" id="elevation" required value="1000">
         </div>
+
+        <!-- Mode Toggle -->
+        <div class="mb-3 mode-toggle-container">
+            <label class="form-label">Hiking Mode</label>
+            <div class="mode-toggle">
+                <div class="mode-toggle-slider day-hike"></div>
+                <div class="mode-toggle-option" data-mode="day-hike">Day Hike</div>
+                <div class="mode-toggle-option" data-mode="backpacking">Backpacking</div>
+            </div>
+            <input type="hidden" id="mode" value="day-hike">
+        </div>
+
         <div class="mb-3">
             <label class="form-label">Terrain Type</label>
             <div id="terrain-group" class="btn-group w-100" role="group">
@@ -101,15 +159,105 @@ function setupButtonGroup(groupId, hiddenId) {
             btn.classList.add('active');
             document.getElementById(hiddenId).value = btn.getAttribute('data-value');
             updateResult();
+            updateModeBasedOnSettings();
         });
     });
+}
+
+// Check terrain and pack settings and update mode toggle accordingly
+function updateModeBasedOnSettings() {
+    const terrain = document.getElementById('terrain').value;
+    const packWeight = document.getElementById('pack').value;
+
+    if (terrain === 'backcountry' && packWeight === 'light') {
+        // If settings match Day Hike preset
+        updateModeToggle('day-hike');
+    } else if (terrain === 'hilly' && packWeight === 'heavy') {
+        // If settings match Backpacking preset
+        updateModeToggle('backpacking');
+    } else {
+        // Otherwise we're in custom mode
+        updateModeToggle('custom');
+    }
+}
+
+// Update the mode toggle UI
+function updateModeToggle(mode) {
+    const slider = document.querySelector('.mode-toggle-slider');
+    slider.className = 'mode-toggle-slider ' + mode;
+
+    document.querySelectorAll('.mode-toggle-option').forEach(option => {
+        if (option.getAttribute('data-mode') === mode) {
+            option.classList.add('active');
+        } else {
+            option.classList.remove('active');
+        }
+    });
+
+    document.getElementById('mode').value = mode;
+}
+
+// Set the hiking mode and update settings accordingly
+function setMode(mode) {
+    // Update the mode toggle UI
+    updateModeToggle(mode);
+
+    // Update terrain and pack weight settings based on mode
+    if (mode === 'day-hike') {
+        // Day Hike: Backcountry terrain, Light pack
+        selectTerrain('backcountry');
+        selectPack('light');
+    } else if (mode === 'backpacking') {
+        // Backpacking: Hilly terrain, Heavy pack
+        selectTerrain('hilly');
+        selectPack('heavy');
+    }
+    // For 'custom' mode, don't change the current settings
+}
+
+function selectTerrain(value) {
+    const terrainGroup = document.getElementById('terrain-group');
+    terrainGroup.querySelectorAll('button').forEach(btn => {
+        if (btn.getAttribute('data-value') === value) {
+            terrainGroup.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('terrain').value = value;
+        }
+    });
+}
+
+function selectPack(value) {
+    const packGroup = document.getElementById('pack-group');
+    packGroup.querySelectorAll('button').forEach(btn => {
+        if (btn.getAttribute('data-value') === value) {
+            packGroup.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('pack').value = value;
+        }
+    });
+}
+
+function setupModeToggle() {
+    document.querySelectorAll('.mode-toggle-option').forEach(option => {
+        option.addEventListener('click', function() {
+            const mode = this.getAttribute('data-mode');
+            setMode(mode);
+            updateResult();
+        });
+    });
+
+    // Initialize with Day Hike mode
+    setMode('day-hike');
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     setupButtonGroup('terrain-group', 'terrain');
     setupButtonGroup('pack-group', 'pack');
+    setupModeToggle();
+
     document.getElementById('distance').addEventListener('input', updateResult);
     document.getElementById('elevation').addEventListener('input', updateResult);
+
     updateResult();
 });
 </script>

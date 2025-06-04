@@ -17,16 +17,83 @@ tooltipStyle.textContent = `
   font-size: 14px;
   font-family: Arial, sans-serif;
   display: none;
-  pointer-events: none;
+  pointer-events: auto;
   tab-size: 4;
+}
+
+.tooltip-mode-toggle {
+  margin: 10px 0;
+  display: flex;
+  position: relative;
+  background-color: #e0e0e0;
+  border-radius: 30px;
+  height: 30px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.tooltip-mode-slider {
+  position: absolute;
+  height: 30px;
+  width: 50%;
+  border-radius: 30px;
+  background-color: #2F7844;
+  transition: transform 0.3s ease;
+  z-index: 0;
+}
+
+.tooltip-mode-slider.day-hike {
+  transform: translateX(0);
+}
+
+.tooltip-mode-slider.custom {
+  opacity: 0;
+}
+
+.tooltip-mode-slider.backpacking {
+  transform: translateX(100%);
+}
+
+.tooltip-mode-option {
+  flex: 1;
+  text-align: center;
+  line-height: 30px;
+  cursor: pointer;
+  z-index: 1;
+  font-weight: 500;
+  color: #333;
+  user-select: none;
+}
+
+.tooltip-mode-option.active {
+  color: white;
 }
 `;
 document.head.appendChild(tooltipStyle);
+
+// Tooltip delay handling variables
+let tooltipHideTimeout = null;
+const tooltipHideDelay = 300; // milliseconds to keep tooltip visible after mouse leaves
 
 // Create tooltip element
 const tooltip = document.createElement('div');
 tooltip.className = 'naismith-tooltip';
 document.body.appendChild(tooltip);
+
+// Add global tooltip event listeners only once
+tooltip.addEventListener('mouseenter', () => {
+    tooltip.style.display = 'block';
+    if (tooltipHideTimeout) {
+        clearTimeout(tooltipHideTimeout);
+        tooltipHideTimeout = null;
+    }
+});
+
+tooltip.addEventListener('mouseleave', () => {
+    tooltipHideTimeout = setTimeout(() => {
+        tooltip.style.display = 'none';
+    }, tooltipHideDelay);
+});
 
 // Default settings
 let userSettings = {
@@ -58,6 +125,93 @@ function formatAsHHMM(minutes) {
     const h = Math.floor(minutes / 60);
     const m = Math.round(minutes % 60);
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+}
+
+// Helper function to create a mode toggle element
+function createModeToggle(currentMode, calculationDetails) {
+  const { distance, ascent } = calculationDetails;
+
+  const toggleContainer = document.createElement('div');
+  toggleContainer.className = 'tooltip-mode-toggle';
+
+  const slider = document.createElement('div');
+  slider.className = `tooltip-mode-slider ${currentMode}`;
+  toggleContainer.appendChild(slider);
+
+  const dayHikeOption = document.createElement('div');
+  dayHikeOption.className = `tooltip-mode-option ${currentMode === 'day-hike' ? 'active' : ''}`;
+  dayHikeOption.textContent = 'Day Hike';
+  dayHikeOption.dataset.mode = 'day-hike';
+  toggleContainer.appendChild(dayHikeOption);
+
+  const backpackingOption = document.createElement('div');
+  backpackingOption.className = `tooltip-mode-option ${currentMode === 'backpacking' ? 'active' : ''}`;
+  backpackingOption.textContent = 'Backpacking';
+  backpackingOption.dataset.mode = 'backpacking';
+  toggleContainer.appendChild(backpackingOption);
+
+  // Add event listeners to the toggle options
+  [dayHikeOption, backpackingOption].forEach(option => {
+    option.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const mode = option.dataset.mode;
+
+      // Update local settings
+      if (mode === 'day-hike') {
+        userSettings.terrain = 'backcountry';
+        userSettings.packWeight = 'light';
+      } else if (mode === 'backpacking') {
+        userSettings.terrain = 'hilly';
+        userSettings.packWeight = 'heavy';
+      }
+      userSettings.mode = mode;
+
+      // Save settings to Chrome storage
+      chrome.storage.sync.set(userSettings);
+
+      // Update UI
+      slider.className = `tooltip-mode-slider ${mode}`;
+      toggleContainer.querySelectorAll('.tooltip-mode-option').forEach(opt => {
+        opt.classList.toggle('active', opt.dataset.mode === mode);
+      });
+
+      // Recalculate with new settings
+      const { distance, ascent } = calculationDetails;
+      const base = window.naismithBaseTime(distance, ascent);
+      const terrainCorrection = window.getTerrainCorrection(userSettings.terrain);
+      const packCorrection = window.getPackCorrection(userSettings.packWeight);
+      const correction = terrainCorrection + packCorrection;
+      const corrected = base * (1 + correction / 100);
+      const breakTime = window.calculateBreakTime(corrected);
+      const final = corrected + breakTime;
+
+      // Update display mode name
+      let displayMode = "Custom";
+      if (mode === "day-hike") displayMode = "Day Hike";
+      if (mode === "backpacking") displayMode = "Backpacking";
+
+      // Format the updated tooltip text
+      const updatedTooltipText = `Base Naismith's time: ${formatAsHHMM(base)} 
+\t${distance} mi distance: ${formatAsHHMM(20 * distance)}
+\t${ascent} ft ascent: ${formatAsHHMM(20 * 3 * (ascent / 2000))}
+Mode: ${displayMode}
+\tTerrain correction: ${terrainCorrection}%
+\tPack weight correction: ${packCorrection}%
+Breaks time: ${formatAsHHMM(breakTime)}
+Final estimated hiking time: ${formatAsHHMM(final)}`;
+
+      // Update the tooltip text content immediately
+      const textContent = tooltip.querySelector('div:first-child');
+      if (textContent) {
+        textContent.textContent = updatedTooltipText;
+      }
+
+      // Update the estimate display on the page
+      extractHikeStats();
+    });
+  });
+
+  return toggleContainer;
 }
 
 function createStyledDurationDiv(minutes, styleSource, summaryMode = false, calculationDetails = null) {
@@ -92,25 +246,65 @@ function createStyledDurationDiv(minutes, styleSource, summaryMode = false, calc
         const distanceTime = 20 * distance;  // 20 min per mile
         const ascentTime = 20 * 3 * (ascent / 2000);  // 20 min × 3 × (ascent / 2000 ft)
 
-        // Format the tooltip exactly as specified in the documentation with preserved tabulation
-        // Using actual tab characters for indentation as per the documentation
-        const tooltipContent = `Base Naismith's time: ${formatAsHHMM(base)} 
+        // Determine mode based on settings
+        let mode = "custom";
+        if (userSettings.terrain === 'backcountry' && userSettings.packWeight === 'light') {
+            mode = "day-hike";
+        } else if (userSettings.terrain === 'hilly' && userSettings.packWeight === 'heavy') {
+            mode = "backpacking";
+        }
+
+        // Format display mode name
+        let displayMode = "Custom";
+        if (mode === "day-hike") displayMode = "Day Hike";
+        if (mode === "backpacking") displayMode = "Backpacking";
+
+        // Format the tooltip text as specified in the documentation with preserved tabulation
+        const tooltipText = `Base Naismith's time: ${formatAsHHMM(base)} 
 \t${distance} mi distance: ${formatAsHHMM(distanceTime)}
 \t${ascent} ft ascent: ${formatAsHHMM(ascentTime)}
-Terrain correction: ${terrainCorrection}%
-Pack weight correction: ${packCorrection}%
+Mode: ${displayMode}
+\tTerrain correction: ${terrainCorrection}%
+\tPack weight correction: ${packCorrection}%
 Breaks time: ${formatAsHHMM(breakTime)}
 Final estimated hiking time: ${formatAsHHMM(final)}`;
 
         // Set tooltip on both the main div and all child elements to ensure it works in all cases
         div.addEventListener('mouseenter', () => {
-            tooltip.textContent = tooltipContent;
+            // Clear any existing content
+            tooltip.innerHTML = '';
+
+            // Create and add the text content
+            const textContent = document.createElement('div');
+            textContent.textContent = tooltipText;
+            tooltip.appendChild(textContent);
+
+            // Create and add the mode toggle
+            const toggleElement = createModeToggle(mode, calculationDetails);
+            tooltip.appendChild(toggleElement);
+
+            // Show and position the tooltip
             tooltip.style.display = 'block';
             tooltip.style.left = `${div.getBoundingClientRect().left}px`;
             tooltip.style.top = `${div.getBoundingClientRect().bottom + 5}px`;
         });
-        div.addEventListener('mouseleave', () => {
-            tooltip.style.display = 'none';
+
+        // Hide tooltip when mouse leaves both div and tooltip
+        div.addEventListener('mouseleave', (e) => {
+            // Only hide if not entering the tooltip
+            if (!e.relatedTarget || !e.relatedTarget.closest('.naismith-tooltip')) {
+                const tooltipRect = tooltip.getBoundingClientRect();
+                const mouseX = e.clientX;
+                const mouseY = e.clientY;
+
+                // Check if mouse is moving to the tooltip
+                if (mouseX < tooltipRect.left || mouseX > tooltipRect.right ||
+                    mouseY < tooltipRect.top || mouseY > tooltipRect.bottom) {
+                    tooltipHideTimeout = setTimeout(() => {
+                        tooltip.style.display = 'none';
+                    }, tooltipHideDelay);
+                }
+            }
         });
     } else {
         const basicTooltip = `Estimated hiking time including breaks (${h}h ${m}m)`;
@@ -119,9 +313,15 @@ Final estimated hiking time: ${formatAsHHMM(final)}`;
             tooltip.style.display = 'block';
             tooltip.style.left = `${div.getBoundingClientRect().left}px`;
             tooltip.style.top = `${div.getBoundingClientRect().bottom + 5}px`;
+            if (tooltipHideTimeout) {
+                clearTimeout(tooltipHideTimeout);
+                tooltipHideTimeout = null;
+            }
         });
         div.addEventListener('mouseleave', () => {
-            tooltip.style.display = 'none';
+            tooltipHideTimeout = setTimeout(() => {
+                tooltip.style.display = 'none';
+            }, tooltipHideDelay);
         });
     }
 
@@ -322,28 +522,84 @@ function extractHikeStats() {
 
                     // Add hover tooltip
                     durationLi.addEventListener('mouseenter', (event) => {
-                        const tooltipContent = `Base Naismith's time: ${formatAsHHMM(base)} 
+                        // Clear any existing content
+                        tooltip.innerHTML = '';
+
+                        // Determine mode based on settings
+                        let mode = "custom";
+                        if (userSettings.terrain === 'backcountry' && userSettings.packWeight === 'light') {
+                            mode = "day-hike";
+                        } else if (userSettings.terrain === 'hilly' && userSettings.packWeight === 'heavy') {
+                            mode = "backpacking";
+                        }
+
+                        // Format display mode name
+                        let displayMode = "Custom";
+                        if (mode === "day-hike") displayMode = "Day Hike";
+                        if (mode === "backpacking") displayMode = "Backpacking";
+
+                        // Format the tooltip text
+                        const tooltipText = `Base Naismith's time: ${formatAsHHMM(base)} 
 \t${distance} mi distance: ${formatAsHHMM(20 * distance)}
 \t${ascent} ft ascent: ${formatAsHHMM(20 * 3 * (ascent / 2000))}
-Terrain correction: ${terrainCorrection}%
-Pack weight correction: ${packCorrection}%
+Mode: ${displayMode}
+\tTerrain correction: ${terrainCorrection}%
+\tPack weight correction: ${packCorrection}%
 Breaks time: ${formatAsHHMM(breakTime)}
 Final estimated hiking time: ${formatAsHHMM(final)}`;
 
-                        tooltip.textContent = tooltipContent;
+                        // Create and add the text content
+                        const textContent = document.createElement('div');
+                        textContent.textContent = tooltipText;
+                        tooltip.appendChild(textContent);
+
+                        // Create and add the mode toggle
+                        const toggleElement = createModeToggle(mode, { distance, ascent, final, base, terrainCorrection, packCorrection, breakTime });
+                        tooltip.appendChild(toggleElement);
+
+                        // Show and position the tooltip
                         tooltip.style.display = 'block';
 
-                        // Get the current mouse position and element position for better tooltip placement
+                        // Get the current element position for better tooltip placement
                         const rect = durationLi.getBoundingClientRect();
                         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-                        // Position tooltip below the element instead of using fixed coordinates
+                        // Position tooltip below the element
                         tooltip.style.left = `${rect.left}px`;
                         tooltip.style.top = `${rect.bottom + scrollTop + 5}px`;
+
+                        // Prevent the tooltip from disappearing when mouse moves to toggle
+                        tooltip.addEventListener('mouseenter', () => {
+                            tooltip.style.display = 'block';
+                            if (tooltipHideTimeout) {
+                                clearTimeout(tooltipHideTimeout);
+                                tooltipHideTimeout = null;
+                            }
+                        });
                     });
 
-                    durationLi.addEventListener('mouseleave', () => {
-                        tooltip.style.display = 'none';
+                    // Hide tooltip when mouse leaves both div and tooltip
+                    durationLi.addEventListener('mouseleave', (e) => {
+                        // Only hide if not entering the tooltip
+                        if (!e.relatedTarget || !e.relatedTarget.closest('.naismith-tooltip')) {
+                            const tooltipRect = tooltip.getBoundingClientRect();
+                            const mouseX = e.clientX;
+                            const mouseY = e.clientY;
+
+                            // Check if mouse is moving to the tooltip
+                            if (mouseX < tooltipRect.left || mouseX > tooltipRect.right ||
+                                mouseY < tooltipRect.top || mouseY > tooltipRect.bottom) {
+                                tooltipHideTimeout = setTimeout(() => {
+                                    tooltip.style.display = 'none';
+                                }, tooltipHideDelay);
+                            }
+                        }
+                    });
+
+                    tooltip.addEventListener('mouseleave', () => {
+                        tooltipHideTimeout = setTimeout(() => {
+                            tooltip.style.display = 'none';
+                        }, tooltipHideDelay);
                     });
 
                     // Add the duration li to the ul
