@@ -39,10 +39,64 @@
     .option-button:hover:not(.selected) {
       background-color: #e0e0e0;
     }
+
+    /* Mode Toggle Styles */
+    .mode-toggle-container {
+      margin-bottom: 20px;
+    }
+    .mode-toggle {
+      display: flex;
+      position: relative;
+      background-color: #e0e0e0;
+      border-radius: 30px;
+      height: 30px;
+      width: 250px;
+      margin: 10px auto;
+    }
+    .mode-toggle-slider {
+      position: absolute;
+      height: 30px;
+      width: 125px;
+      border-radius: 30px;
+      background-color: #2F7844;
+      transition: transform 0.3s ease;
+    }
+    .mode-toggle-slider.day-hike {
+      transform: translateX(0);
+    }
+    .mode-toggle-slider.custom {
+      /* Hide the slider in custom mode */
+      opacity: 0;
+    }
+    .mode-toggle-slider.backpacking {
+      transform: translateX(125px);
+    }
+    .mode-toggle-option {
+      flex: 1;
+      text-align: center;
+      line-height: 30px;
+      cursor: pointer;
+      z-index: 1;
+      font-weight: 500;
+      color: #333;
+    }
+    .mode-toggle-option.active {
+      color: white;
+    }
   </style>
 </head>
 <body>
   <h2>Hiking Time Estimator Settings</h2>
+
+  <!-- Mode Toggle -->
+  <div class="mode-toggle-container">
+    <div>Hiking Mode:</div>
+    <div class="mode-toggle">
+      <div class="mode-toggle-slider day-hike"></div>
+      <div class="mode-toggle-option" data-mode="day-hike">Day Hike</div>
+      <div class="mode-toggle-option" data-mode="backpacking">Backpacking</div>
+    </div>
+  </div>
 
   <div class="option-group">
     <div>Terrain Type:</div>
@@ -57,8 +111,8 @@
   <div class="option-group">
     <div>Packing Weight:</div>
     <div class="option-buttons" id="pack-options">
-      <button class="option-button" data-value="light">Light (7%)</button>
-      <button class="option-button selected" data-value="moderate">Moderate (14%)</button>
+      <button class="option-button selected" data-value="light">Light (7%)</button>
+      <button class="option-button" data-value="moderate">Moderate (14%)</button>
       <button class="option-button" data-value="heavy">Heavy (20%)</button>
       <button class="option-button" data-value="very_heavy">Very Heavy (25%+)</button>
     </div>
