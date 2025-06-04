@@ -1,14 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "Hiking Time Estimator",
+  "name": "Hiking Time Estimator for Gaia GPS",
   "version": "1.0",
-  "description": "Estimates hiking time for Gaia GPS hikes.",
+  "description": "Estimates hiking time for Gaia GPS routes.",
   "permissions": ["tabs", "storage"],
   "host_permissions": ["https://www.gaiagps.com/*", "http://www.gaiagps.com/*"],
   "content_scripts": [
     {
       "matches": ["https://www.gaiagps.com/*", "http://www.gaiagps.com/*"],
-      "js": ["hiking-time-calculator.js", "chrome-plugin.js"]
+      "js": ["hiking-time-calculator.js", "chrome-plugin.js"],
+      "css": ["chrome-plugin.css"]
     }
   ],
 
