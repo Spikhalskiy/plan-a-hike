@@ -46,20 +46,24 @@ tooltip.addEventListener('mouseleave', () => {
  */
 function createTooltipText(details) {
     const {
-        base, distanceTime, ascentTime, terrainCorrection, packCorrection,
-        breakTime, distance, ascent, final, mode
+        totalBaseTime, distanceTime, ascentTime, terrainCorrection, packCorrection,
+        breakTime, distance, ascent, finalTime, mode, unitsType
     } = details;
 
     const displayMode = window.HikingTimeEstimator.getDisplayModeName(mode);
-
-    return `Base Naismith's time: ${window.HikingTimeEstimator.formatAsHHMM(base)} 
-\t${distance} mi distance: ${window.HikingTimeEstimator.formatAsHHMM(distanceTime)}
-\t${ascent} ft ascent: ${window.HikingTimeEstimator.formatAsHHMM(ascentTime)}
+    // Determine units
+    const distUnit = unitsType === 'metric' ? 'km' : 'mi';
+    const elevUnit = unitsType === 'metric' ? 'm' : 'ft';
+    const distVal = (distance % 1 === 0) ? distance : distance.toFixed(1);
+    const ascVal = (ascent % 1 === 0) ? ascent : ascent.toFixed(0);
+    return `Base Naismith's time: ${window.HikingTimeEstimator.formatAsHHMM(totalBaseTime)} 
+\t${distVal} ${distUnit} distance: ${window.HikingTimeEstimator.formatAsHHMM(distanceTime)}
+\t${ascVal} ${elevUnit} ascent: ${window.HikingTimeEstimator.formatAsHHMM(ascentTime)}
 Mode: ${displayMode}
 \tTerrain correction: ${terrainCorrection}%
 \tPack weight correction: ${packCorrection}%
 Breaks time: ${window.HikingTimeEstimator.formatAsHHMM(breakTime)}
-Final estimated hiking time: ${window.HikingTimeEstimator.formatAsHHMM(final)}`;
+Final estimated hiking time: ${window.HikingTimeEstimator.formatAsHHMM(finalTime)}`;
 }
 
 /**

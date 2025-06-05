@@ -30,6 +30,13 @@ Let's add the additional 10 minutes for every hour of hiking time to get the fin
 
 The outputs are: Naismith's estimate, correction %, breaks time, final corrected estimate.
 
+## Distance Units
+
+Calculation function should take a `UnitsType` enum with two values: `METRIC` or `IMPERIAL` as an input 
+to Naismith's Rule function to define the correct unit system for the passed distance and ascent.
+If it's the imperial system, calculation logic should convert the values into IMPERIAL units before 
+using Naismith's Rule formula to get the base estimate.
+
 # Standalone UI
 
 First, UI should have the two numerical inputs.
@@ -45,6 +52,8 @@ Calculated values should be updated automatically and displayed when a user chan
 Default prepopulated value for:
 - distance: 5 miles, 
 - vertical gain: 1000 feet.
+
+Standalone UI should work with the imperial system only.
 
 ### Mode toggle
 Above the categorical inputs, there should be a toggle to switch between "Day Hike" and "Backpacking" modes.
@@ -148,8 +157,8 @@ This should work on all divs with the duration estimates that we add in this plu
 The tooltip should display the following information (preserve tabulation, make sure css styles are rendering tabs correctly):
 ```
 Base Naismith's time: hh:mm 
-<tab>M mi distance: hh:mm
-<tab>N fi ascent: hh:mm
+<tab>M <mi/km> distance: hh:mm
+<tab>N <fi/m> ascent: hh:mm
 Mode: <Day Hike / Backpacking / Custom>
 <tab>Terrain correction: X%
 <tab>Pack weight correction: Y%
@@ -165,6 +174,16 @@ The toggle should stay ON for some time after the mouse pointer leaves the eleme
 so the user has a chance to move the mouse over tooltip.
 Toggle should not disappear if the user continues hovering over the tooltip.
 This is needed so the user can use the toggle on the tooltip.
+
+## Distance Units
+
+The plugin should support both imperial and metric units for distance and elevation.
+Examples in this document are in imperial units.
+Plugin should detect the units of the numeric values from the original divs based on if
+`km` or `mi` were found in the distance div.
+The plugin should take numbers-as-is and pass a `UnitsType` enum value into:
+- popup to display the correct units 
+- duration calculation logic to show that the passed numbers are in imperial or metric units.
 
 ## Plugin scope
 

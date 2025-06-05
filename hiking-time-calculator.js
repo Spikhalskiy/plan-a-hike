@@ -25,17 +25,35 @@ const PACK_CORRECTIONS = {
     'very_heavy': 60   // 25%+ body weight
 };
 
+// UnitsType enum for imperial/metric support
+const UnitsType = {
+  IMPERIAL: 'imperial',
+  METRIC: 'metric'
+};
+
 /**
  * Calculate base time according to Naismith's Rule
- * @param {number} distance - Distance in miles
- * @param {number} elevation - Vertical gain in feet
- * @return {number} - Base time in minutes
+ * @param {number} distance - Distance (mi or km)
+ * @param {number} elevation - Vertical gain (ft or m)
+ * @param {string} unitsType - 'imperial' or 'metric'
+ * @return {Object} - {totalBaseTime, distanceTime, ascentTime} Total time in minutes and it's components
  */
-window.naismithBaseTime = function(distance, elevation) {
-    const distanceTime = MINUTES_PER_MILE * distance;
-    const ascentTime = MINUTES_PER_MILE * EQUIVALENT_MILES_PER_ASCENT * (elevation / FEET_PER_EQUIVALENT_MILE);
-    return distanceTime + ascentTime;
-};
+window.naismithBaseTime = function(distance, elevation, unitsType) {
+    let dist = distance, elev = elevation;
+    if (unitsType === UnitsType.METRIC) {
+        dist = distance * 0.621371; // km to mi
+        elev = elevation * 3.28084; // m to ft
+    }
+    const distanceTime = Math.ceil(MINUTES_PER_MILE * dist);
+    const ascentTime = Math.ceil(MINUTES_PER_MILE * EQUIVALENT_MILES_PER_ASCENT * (elev / FEET_PER_EQUIVALENT_MILE));
+    const totalBaseTime = distanceTime + ascentTime;
+
+    return {
+        totalBaseTime,
+        distanceTime,
+        ascentTime
+    };
+}
 
 /**
  * Get correction percentage based on terrain type
@@ -61,5 +79,5 @@ window.getPackCorrection = function(pack) {
  * @return {number} - Break time in minutes
  */
 window.calculateBreakTime = function(hikingTimeMinutes) {
-    return Math.floor(hikingTimeMinutes / 60) * BREAK_MINUTES_PER_HOUR;
+    return Math.ceil(hikingTimeMinutes / 60 * BREAK_MINUTES_PER_HOUR);
 };

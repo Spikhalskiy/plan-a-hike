@@ -62,31 +62,26 @@ function determineCurrentMode() {
 
 /**
  * Calculate hiking time details
- * @param {number} distance - Distance in miles
- * @param {number} ascent - Ascent in feet
- * @return {Object} - Object containing all calculation details
+ * @param {number} distance - Distance (mi or km)
+ * @param {number} ascent - Ascent (ft or m)
+ * @param {string} unitsType - 'imperial' or 'metric'
+ * @return {Object} - Calculation details
  */
-function calculateHikingTime(distance, ascent) {
-    // Calculate base time components
-    const base = window.naismithBaseTime(distance, ascent);
-    const distanceTime = 20 * distance;  // 20 min per mile
-    const ascentTime = 20 * 3 * (ascent / 2000);  // 20 min × 3 × (ascent / 2000 ft)
+function calculateHikingTime(distance, ascent, unitsType) {
+    const { totalBaseTime, distanceTime, ascentTime }= window.naismithBaseTime(distance, ascent, unitsType);
 
-    // Apply corrections
     const terrainCorrection = window.getTerrainCorrection(userSettings.terrain);
     const packCorrection = window.getPackCorrection(userSettings.packWeight);
     const correction = terrainCorrection + packCorrection;
-    const corrected = base * (1 + correction / 100);
-
-    // Calculate break time and final total
+    const corrected = Math.ceil(totalBaseTime * (1 + correction / 100));
     const breakTime = window.calculateBreakTime(corrected);
-    const final = corrected + breakTime;
+    const finalTime = corrected + breakTime;
 
     // Determine current mode
     const mode = determineCurrentMode();
 
     return {
-        base,
+        totalBaseTime,
         distanceTime,
         ascentTime,
         terrainCorrection,
@@ -96,9 +91,21 @@ function calculateHikingTime(distance, ascent) {
         breakTime,
         distance,
         ascent,
-        final,
+        finalTime,
+        unitsType,
         mode
     };
+}
+
+/**
+ * Helper to detect units from text
+ * @param {string} text - Text to detect units from
+ * @return {string} - Detected units type (imperial or metric)
+ */
+function detectUnits(text) {
+  if (/km|m(?!i)/i.test(text)) return UnitsType.METRIC;
+  if (/mi|ft/i.test(text)) return UnitsType.IMPERIAL;
+  return UnitsType.IMPERIAL; // default to imperial
 }
 
 /**
@@ -125,7 +132,7 @@ function handleModeChange(mode, calculationDetails) {
     });
 
     // Recalculate with new settings
-    const newDetails = calculateHikingTime(distance, ascent);
+    const newDetails = calculateHikingTime(distance, ascent, calculationDetails.unitsType);
     // Update the tooltip text content immediately
     const textContent = document.querySelector('.hiking-estimator-tooltip div:first-child');
     if (textContent) {
@@ -190,7 +197,7 @@ function createDurationListItem(calculationDetails) {
     durationLi.className = 'hiking-estimator-estimate';
 
     // Format time as hh:mm
-    const formattedTime = window.HikingTimeEstimator.formatAsHHMM(calculationDetails.final);
+    const formattedTime = window.HikingTimeEstimator.formatAsHHMM(calculationDetails.finalTime);
 
     // Set the content mimicking the style of the descent li
     durationLi.innerHTML = `<strong>${formattedTime}</strong><div class="Stats-module__statLabel--Jk4cC">~ Duration</div>`;
@@ -225,6 +232,7 @@ function processRouteEditingPage() {
     const statDivs = statsContainer.querySelectorAll('div');
     let distance = null, ascent = null, descent = null;
     let descentDiv = null, descentStyle = null;
+    let unitsType = UnitsType.IMPERIAL;
 
     // Extract distance, ascent, and descent values
     statDivs.forEach(div => {
@@ -237,16 +245,18 @@ function processRouteEditingPage() {
 
             if (valueMatch) {
                 const value = parseFloat(valueMatch[1].replace(/,/g, ''));
-                if (unit === 'mi' && distance === null) {
+                // We really rely on the order of these divs here and nothing else.
+                // But Gaia gives us nothing else atm.
+                // There are no distinct CSS classes or any label to make it more robust.
+                if (distance === null) {
                     distance = value;
-                } else if (unit === 'ft') {
-                    if (ascent === null) {
-                        ascent = value;
-                    } else if (descent === null) {
-                        descent = value;
-                        descentDiv = div;
-                        descentStyle = span;
-                    }
+                    unitsType = detectUnits(unit);
+                } else if (ascent === null) {
+                    ascent = value;
+                } else if (descent === null) {
+                    descent = value;
+                    descentDiv = div;
+                    descentStyle = span;
                 }
             }
         }
@@ -254,14 +264,14 @@ function processRouteEditingPage() {
 
     // If we have all the needed values, display the estimate
     if (distance !== null && ascent !== null && descent !== null && descentDiv) {
-        const calculationDetails = calculateHikingTime(distance, ascent);
+        const calculationDetails = calculateHikingTime(distance, ascent, unitsType);
 
         // Remove any previous estimate
         const prev = descentDiv.parentNode.querySelector('.hiking-estimator-estimate');
         if (prev) prev.remove();
 
         // Insert styled duration div after descentDiv
-        const estDiv = createStyledDurationDiv(calculationDetails.final, descentStyle, false, calculationDetails);
+        const estDiv = createStyledDurationDiv(calculationDetails.finalTime, descentStyle, false, calculationDetails);
 
         if (descentDiv.nextSibling) {
             descentDiv.parentNode.insertBefore(estDiv, descentDiv.nextSibling);
@@ -281,6 +291,7 @@ function processRouteSummaryPage() {
     const statBlocks = summaryContainer.querySelectorAll('div > div');
     let distance = null, ascent = null;
     let ascentDiv = null, ascentStyle = null;
+    let unitsType = UnitsType.IMPERIAL;
 
     // Extract distance and ascent values
     statBlocks.forEach(block => {
@@ -290,11 +301,13 @@ function processRouteSummaryPage() {
             const label = spans[0].textContent.trim().toLowerCase();
             let valueText = extractValueText(p, spans[1]);
             const valueMatch = valueText.match(/([\d,.]+)/);
+            const unitText = spans[1] ? spans[1].textContent.trim().toLowerCase() : '';
 
             if (valueMatch) {
                 const value = parseFloat(valueMatch[1].replace(/,/g, ''));
                 if (label.includes('distance') && distance === null) {
                     distance = value;
+                    unitsType = detectUnits(unitText);
                 } else if (label.includes('ascent') && ascent === null) {
                     ascent = value;
                     ascentDiv = block;
@@ -306,14 +319,14 @@ function processRouteSummaryPage() {
 
     // If we have all the needed values, display the estimate
     if (distance !== null && ascent !== null && ascentDiv) {
-        const calculationDetails = calculateHikingTime(distance, ascent);
+        const calculationDetails = calculateHikingTime(distance, ascent, unitsType);
 
         // Remove any previous estimate
         const prev = ascentDiv.parentNode.querySelector('.hiking-estimator-estimate');
         if (prev) prev.remove();
 
         // Insert styled duration div to the right of ascentDiv
-        const estDiv = createStyledDurationDiv(calculationDetails.final, ascentStyle, true, calculationDetails);
+        const estDiv = createStyledDurationDiv(calculationDetails.finalTime, ascentStyle, true, calculationDetails);
 
         ascentDiv.parentNode.insertBefore(estDiv, ascentDiv.nextSibling);
     }
@@ -355,12 +368,14 @@ function processRouteSharingPage() {
 function processStatsCard(statsItem, statsInfo) {
     // Extract distance from the main stats item
     let distance = null;
+    let unitsType = UnitsType.IMPERIAL;
     const distanceValueDiv = statsItem.querySelector('div.Stats-module__statsItemTextValue--DE1cK');
     if (distanceValueDiv) {
         const distanceText = distanceValueDiv.textContent;
         const distanceMatch = distanceText.match(/([\d,.]+)/);
         if (distanceMatch) {
             distance = parseFloat(distanceMatch[1].replace(/,/g, ''));
+            unitsType = detectUnits(distanceText);
         }
     }
 
@@ -392,7 +407,7 @@ function processStatsCard(statsItem, statsInfo) {
 
     // If we have all the needed values, display the estimate
     if (distance !== null && ascent !== null && descent !== null && descentLi) {
-        const calculationDetails = calculateHikingTime(distance, ascent);
+        const calculationDetails = calculateHikingTime(distance, ascent, unitsType);
 
         // Remove any previous estimate
         const prev = statsInfo.querySelector('.hiking-estimator-estimate');
@@ -446,4 +461,3 @@ const observer = new MutationObserver(() => {
 
 // Start observing DOM changes
 observer.observe(document.body, { childList: true, subtree: true });
-
