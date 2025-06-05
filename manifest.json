@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Hiking Duration Estimator for Gaia GPS",
   "short_name": "Gaia ⏱",
-  "version": "1.0",
+  "version": "1.1",
   "description": "Estimates hiking time for Gaia GPS routes.",
   "homepage_url": "https://github.com/spikhalskiy/plan-a-hike",
   "minimum_chrome_version": "88",
