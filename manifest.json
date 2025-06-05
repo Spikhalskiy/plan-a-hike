@@ -11,7 +11,7 @@
   "content_scripts": [
     {
       "matches": ["https://www.gaiagps.com/*", "http://www.gaiagps.com/*"],
-      "js": ["hiking-time-calculator.js", "chrome-plugin.js"],
+      "js": ["chrome-plugin-common.js", "hiking-time-calculator.js", "tooltip.js", "chrome-plugin.js"],
       "css": ["chrome-plugin.css"]
     }
   ],
