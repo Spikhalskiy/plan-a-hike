@@ -7,15 +7,20 @@
 
 document.addEventListener('DOMContentLoaded', function() {
   // First check if we're on a Gaia GPS page
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-    if (tabs[0] && tabs[0].url && tabs[0].url.includes('gaiagps.com')) {
-      // We're on a Gaia GPS page, initialize the popup
-      initializePopup();
-    } else {
-      // Not on Gaia GPS, show a message
-      document.body.innerHTML = '<div style="padding: 20px; text-align: center;">This extension only works on Gaia GPS websites.</div>';
-    }
-  });
+  // chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+  //   if (tabs[0] && tabs[0].url && tabs[0].url.includes('gaiagps.com')) {
+  //     // We're on a Gaia GPS page, initialize the popup
+  //     initializePopup();
+  //   } else {
+  //     // Not on Gaia GPS, show a message
+  //     document.body.innerHTML = '<div style="padding: 20px; text-align: center;">This extension only works on Gaia GPS websites.</div>';
+  //   }
+  // });
+
+  // Code above requires tabs permission and it looks like google store doesn't like giving it without a good reason.
+  // We probably don't have to ask for it.
+  initializePopup();
+
 
   /**
    * Initialize the popup with saved settings and event listeners

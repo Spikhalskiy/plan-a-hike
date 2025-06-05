@@ -6,8 +6,7 @@
   "description": "Estimates hiking time for Gaia GPS routes.",
   "homepage_url": "https://github.com/spikhalskiy/plan-a-hike",
   "minimum_chrome_version": "88",
-  "permissions": ["tabs", "storage"],
-  "host_permissions": ["https://www.gaiagps.com/*", "http://www.gaiagps.com/*"],
+  "permissions": ["storage"],
   "content_scripts": [
     {
       "matches": ["https://www.gaiagps.com/*", "http://www.gaiagps.com/*"],
