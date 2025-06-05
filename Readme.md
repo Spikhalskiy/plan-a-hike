@@ -10,3 +10,7 @@ This plugin implements a hiking time estimator for the GaiaGPS website.
 
 [Product Description](docs/Hiking_Time_Estimator_UI_Plugin.md)
 [Privacy Policy](docs/privacy-policy.md)
+
+## Publishing
+
+To prepare the plugin for publishing, use [`./prepare.sh`](./prepare.sh)
