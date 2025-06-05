@@ -180,23 +180,23 @@ function updateResult() {
     }
 
     // Calculate estimates
-    const base = window.naismithBaseTime(distance, elevation);
+    const {totalBaseTime, distanceTime, ascentTime} = window.naismithBaseTime(distance, elevation, UnitsType.IMPERIAL);
     const terrainCorr = window.getTerrainCorrection(terrain);
     const packCorr = window.getPackCorrection(pack);
     const corr = terrainCorr + packCorr;
-    const correctedTime = base * (1 + corr / 100);
+    const correctedTime = totalBaseTime * (1 + corr / 100);
     const breakTime = window.calculateBreakTime(correctedTime);
     const final = correctedTime + breakTime;
 
     // Update UI
-    document.getElementById('base-time').textContent = formatTime(base);
+    document.getElementById('base-time').textContent = formatTime(totalBaseTime);
     document.getElementById('correction').textContent = (corr > 0 ? '+' : '') + corr + '%';
     document.getElementById('break-time').textContent = formatTime(breakTime);
     document.getElementById('final-time').textContent = formatTime(final);
     document.getElementById('formula').innerHTML =
-        `Base time = 20 × ${distance} + 20 × 3 × (${elevation} / 2000) = <b>${base.toFixed(1)} min</b><br>` +
+        `Base time = 20 × ${distance} + 20 × 3 × (${elevation} / 2000) = <b>${totalBaseTime.toFixed(1)} min</b><br>` +
         `Correction = (${terrainCorr > 0 ? '+' : ''}${terrainCorr}% terrain) + (${packCorr > 0 ? '+' : ''}${packCorr}% pack) = <b>${corr > 0 ? '+' : ''}${corr}%</b><br>` +
-        `Corrected time = ${base.toFixed(1)} × (1 + ${corr}/100) = <b>${correctedTime.toFixed(1)} min</b><br>` +
+        `Corrected time = ${totalBaseTime.toFixed(1)} × (1 + ${corr}/100) = <b>${correctedTime.toFixed(1)} min</b><br>` +
         `Break time = 10 min per hour = <b>${breakTime} min</b><br>` +
         `Final time = ${correctedTime.toFixed(1)} + ${breakTime} = <b>${final.toFixed(1)} min</b>`;
     document.getElementById('result').style.display = '';
