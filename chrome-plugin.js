@@ -3,30 +3,7 @@
  * Displays Naismith's time estimate for hiking routes on Gaia GPS
  */
 
-// ====== CONSTANTS AND CONFIGURATION ======
-
-// Default user settings
-const DEFAULT_SETTINGS = {
-  terrain: 'backcountry',
-  packWeight: 'moderate'
-};
-
-// Mode presets mapping
-const MODE_PRESETS = {
-  'day-hike': {
-    terrain: 'backcountry',
-    packWeight: 'light'
-  },
-  'backpacking': {
-    terrain: 'hilly',
-    packWeight: 'heavy'
-  }
-};
-
-// Tooltip configuration
-const TOOLTIP_CONFIG = {
-  hideDelay: 300, // milliseconds to keep tooltip visible after mouse leaves
-};
+// Uses shared constants and functions from chrome-plugin-common.js
 
 // ====== STYLE INJECTION ======
 
@@ -40,36 +17,13 @@ if (!document.querySelector('link[href$="chrome-plugin.css"]')) {
 
 // ====== STATE MANAGEMENT ======
 
-// Tooltip state
-let tooltipHideTimeout = null;
-
 // User settings - will be loaded from storage
-let userSettings = { ...DEFAULT_SETTINGS };
-
-// Create tooltip element
-const tooltip = document.createElement('div');
-tooltip.className = 'hiking-estimator-tooltip';
-document.body.appendChild(tooltip);
+let userSettings = { ...window.HikingTimeEstimator.DEFAULT_SETTINGS };
 
 // ====== INITIALIZATION ======
 
-// Add global tooltip event listeners
-tooltip.addEventListener('mouseenter', () => {
-    tooltip.style.display = 'block';
-    if (tooltipHideTimeout) {
-        clearTimeout(tooltipHideTimeout);
-        tooltipHideTimeout = null;
-    }
-});
-
-tooltip.addEventListener('mouseleave', () => {
-    tooltipHideTimeout = setTimeout(() => {
-        tooltip.style.display = 'none';
-    }, TOOLTIP_CONFIG.hideDelay);
-});
-
 // Load user settings from storage
-chrome.storage.sync.get(DEFAULT_SETTINGS, function(items) {
+chrome.storage.sync.get(window.HikingTimeEstimator.DEFAULT_SETTINGS, function(items) {
   userSettings = items;
   // Initial run with loaded settings
   extractHikeStats();
@@ -90,18 +44,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 
 // ====== HELPER FUNCTIONS ======
-
-/**
- * Format minutes as HH:MM
- * @param {number} minutes - Time in minutes
- * @return {string} - Formatted time string (HH:MM)
- */
-function formatAsHHMM(minutes) {
-    const h = Math.floor(minutes / 60);
-    const m = Math.round(minutes % 60);
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-}
-
 /**
  * Determine mode based on current settings
  * @return {string} - Current mode (day-hike, backpacking, or custom)
@@ -111,23 +53,10 @@ function determineCurrentMode() {
         userSettings.packWeight === MODE_PRESETS['day-hike'].packWeight) {
         return 'day-hike';
     } else if (userSettings.terrain === MODE_PRESETS['backpacking'].terrain &&
-               userSettings.packWeight === MODE_PRESETS['backpacking'].packWeight) {
+        userSettings.packWeight === MODE_PRESETS['backpacking'].packWeight) {
         return 'backpacking';
     } else {
         return 'custom';
-    }
-}
-
-/**
- * Get display name for mode
- * @param {string} mode - Mode identifier
- * @return {string} - Human-readable mode name
- */
-function getDisplayModeName(mode) {
-    switch(mode) {
-        case 'day-hike': return 'Day Hike';
-        case 'backpacking': return 'Backpacking';
-        default: return 'Custom';
     }
 }
 
@@ -173,102 +102,41 @@ function calculateHikingTime(distance, ascent) {
 }
 
 /**
- * Create tooltip text from calculation details
- * @param {Object} details - Calculation details from calculateHikingTime
- * @return {string} - Formatted tooltip text
+ * Handle mode change from tooltip
+ * @param {string} mode - The selected mode
+ * @param {Object} calculationDetails - The calculation details with distance and ascent
  */
-function createTooltipText(details) {
-    const {
-        base, distanceTime, ascentTime, terrainCorrection, packCorrection,
-        breakTime, distance, ascent, final, mode
-    } = details;
+function handleModeChange(mode, calculationDetails) {
+    const { distance, ascent } = calculationDetails;
 
-    const displayMode = getDisplayModeName(mode);
+    // Update local settings
+    if (mode === 'day-hike') {
+        userSettings.terrain = window.HikingTimeEstimator.MODE_PRESETS['day-hike'].terrain;
+        userSettings.packWeight = window.HikingTimeEstimator.MODE_PRESETS['day-hike'].packWeight;
+    } else if (mode === 'backpacking') {
+        userSettings.terrain = window.HikingTimeEstimator.MODE_PRESETS['backpacking'].terrain;
+        userSettings.packWeight = window.HikingTimeEstimator.MODE_PRESETS['backpacking'].packWeight;
+    }
 
-    return `Base Naismith's time: ${formatAsHHMM(base)} 
-\t${distance} mi distance: ${formatAsHHMM(distanceTime)}
-\t${ascent} ft ascent: ${formatAsHHMM(ascentTime)}
-Mode: ${displayMode}
-\tTerrain correction: ${terrainCorrection}%
-\tPack weight correction: ${packCorrection}%
-Breaks time: ${formatAsHHMM(breakTime)}
-Final estimated hiking time: ${formatAsHHMM(final)}`;
+    // Save settings to Chrome storage
+    chrome.storage.sync.set({
+        terrain: userSettings.terrain,
+        packWeight: userSettings.packWeight
+    });
+
+    // Recalculate with new settings
+    const newDetails = calculateHikingTime(distance, ascent);
+    // Update the tooltip text content immediately
+    const textContent = document.querySelector('.hiking-estimator-tooltip div:first-child');
+    if (textContent) {
+        textContent.textContent = window.TooltipManager.createTooltipText(newDetails);
+    }
+
+    // Update the estimate display on the page
+    extractHikeStats();
 }
 
 // ====== UI COMPONENT CREATORS ======
-
-/**
- * Create a mode toggle element for tooltips
- * @param {string} currentMode - Current mode
- * @param {Object} calculationDetails - Hiking time calculation details
- * @return {HTMLElement} - Mode toggle DOM element
- */
-function createModeToggle(currentMode, calculationDetails) {
-  const { distance, ascent } = calculationDetails;
-
-  const toggleContainer = document.createElement('div');
-  toggleContainer.className = 'mode-toggle';
-
-  const slider = document.createElement('div');
-  slider.className = `mode-slider ${currentMode}`;
-  toggleContainer.appendChild(slider);
-
-  const dayHikeOption = document.createElement('div');
-  dayHikeOption.className = `mode-option ${currentMode === 'day-hike' ? 'active' : ''}`;
-  dayHikeOption.textContent = 'Day Hike';
-  dayHikeOption.dataset.mode = 'day-hike';
-  toggleContainer.appendChild(dayHikeOption);
-
-  const backpackingOption = document.createElement('div');
-  backpackingOption.className = `mode-option ${currentMode === 'backpacking' ? 'active' : ''}`;
-  backpackingOption.textContent = 'Backpacking';
-  backpackingOption.dataset.mode = 'backpacking';
-  toggleContainer.appendChild(backpackingOption);
-
-  // Add event listeners to the toggle options
-  [dayHikeOption, backpackingOption].forEach(option => {
-    option.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const mode = option.dataset.mode;
-
-      // Update local settings
-      if (mode === 'day-hike') {
-        userSettings.terrain = MODE_PRESETS['day-hike'].terrain;
-        userSettings.packWeight = MODE_PRESETS['day-hike'].packWeight;
-      } else if (mode === 'backpacking') {
-        userSettings.terrain = MODE_PRESETS['backpacking'].terrain;
-        userSettings.packWeight = MODE_PRESETS['backpacking'].packWeight;
-      }
-      // Mode is no longer stored explicitly - it will be derived
-
-      // Save settings to Chrome storage
-      chrome.storage.sync.set({
-        terrain: userSettings.terrain,
-        packWeight: userSettings.packWeight
-      });
-
-      // Update UI
-      slider.className = `mode-slider ${mode}`;
-      toggleContainer.querySelectorAll('.mode-option').forEach(opt => {
-        opt.classList.toggle('active', opt.dataset.mode === mode);
-      });
-
-      // Recalculate with new settings
-      const newDetails = calculateHikingTime(distance, ascent);
-
-      // Update the tooltip text content immediately
-      const textContent = tooltip.querySelector('div:first-child');
-      if (textContent) {
-        textContent.textContent = createTooltipText(newDetails);
-      }
-
-      // Update the estimate display on the page
-      extractHikeStats();
-    });
-  });
-
-  return toggleContainer;
-}
 
 /**
  * Create styled duration div for displaying hiking time
@@ -280,9 +148,7 @@ function createModeToggle(currentMode, calculationDetails) {
  */
 function createStyledDurationDiv(minutes, styleSource, summaryMode = false, calculationDetails = null) {
     // Format the time
-    const h = Math.floor(minutes / 60);
-    const m = Math.round(minutes % 60);
-    const timeFormatted = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    const timeFormatted = window.HikingTimeEstimator.formatAsHHMM(minutes);
 
     // Create the container div
     const div = document.createElement('div');
@@ -314,96 +180,33 @@ function createStyledDurationDiv(minutes, styleSource, summaryMode = false, calc
 
     // Add hover tooltip if calculation details are provided
     if (calculationDetails) {
-        setupTooltipForElement(div, calculationDetails);
+        window.TooltipManager.setupTooltipForElement(div, calculationDetails, handleModeChange);
     } else {
-        setupBasicTooltip(div, minutes);
+        window.TooltipManager.setupBasicTooltip(div, minutes);
     }
 
     return div;
 }
 
 /**
- * Setup detailed tooltip with calculation breakdown for an element
- * @param {HTMLElement} element - Element to attach tooltip to
+ * Create a duration list item for the sharing page
  * @param {Object} calculationDetails - Time calculation details
+ * @return {HTMLElement} - Duration list item
  */
-function setupTooltipForElement(element, calculationDetails) {
-    element.addEventListener('mouseenter', () => {
-        // Clear any existing content
-        tooltip.innerHTML = '';
+function createDurationListItem(calculationDetails) {
+    const durationLi = document.createElement('li');
+    durationLi.className = 'hiking-estimator-estimate';
 
-        // Create and add the text content
-        const textContent = document.createElement('div');
-        textContent.textContent = createTooltipText(calculationDetails);
-        tooltip.appendChild(textContent);
+    // Format time as hh:mm
+    const formattedTime = window.HikingTimeEstimator.formatAsHHMM(calculationDetails.final);
 
-        // Create and add the mode toggle
-        const toggleElement = createModeToggle(calculationDetails.mode, calculationDetails);
-        tooltip.appendChild(toggleElement);
+    // Set the content mimicking the style of the descent li
+    durationLi.innerHTML = `<strong>${formattedTime}</strong><div class="Stats-module__statLabel--Jk4cC">Duration</div>`;
 
-        // Show and position the tooltip
-        showTooltipForElement(element);
-    });
+    // Add hover tooltip
+    window.TooltipManager.setupTooltipForElement(durationLi, calculationDetails, handleModeChange);
 
-    // Hide tooltip when mouse leaves both element and tooltip
-    element.addEventListener('mouseleave', handleElementMouseLeave);
-}
-
-/**
- * Setup basic tooltip for an element
- * @param {HTMLElement} element - Element to attach tooltip to
- * @param {number} minutes - Time in minutes for basic info
- */
-function setupBasicTooltip(element, minutes) {
-    const h = Math.floor(minutes / 60);
-    const m = Math.round(minutes % 60);
-    const basicTooltip = `Estimated hiking time including breaks (${h}h ${m}m)`;
-
-    element.addEventListener('mouseenter', () => {
-        tooltip.textContent = basicTooltip;
-        showTooltipForElement(element);
-    });
-
-    element.addEventListener('mouseleave', handleElementMouseLeave);
-}
-
-/**
- * Show and position tooltip for an element
- * @param {HTMLElement} element - Element to show tooltip for
- */
-function showTooltipForElement(element) {
-    const rect = element.getBoundingClientRect();
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-    tooltip.style.display = 'block';
-    tooltip.style.left = `${rect.left}px`;
-    tooltip.style.top = `${rect.bottom + scrollTop + 5}px`;
-
-    if (tooltipHideTimeout) {
-        clearTimeout(tooltipHideTimeout);
-        tooltipHideTimeout = null;
-    }
-}
-
-/**
- * Handle mouseleave event for elements with tooltips
- * @param {Event} e - Mouse event
- */
-function handleElementMouseLeave(e) {
-    // Only hide if not entering the tooltip
-    if (!e.relatedTarget || !e.relatedTarget.closest('.hiking-estimator-tooltip')) {
-        const tooltipRect = tooltip.getBoundingClientRect();
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
-
-        // Check if mouse is moving to the tooltip
-        if (mouseX < tooltipRect.left || mouseX > tooltipRect.right ||
-            mouseY < tooltipRect.top || mouseY > tooltipRect.bottom) {
-            tooltipHideTimeout = setTimeout(() => {
-                tooltip.style.display = 'none';
-            }, TOOLTIP_CONFIG.hideDelay);
-        }
-    }
+    return durationLi;
 }
 
 // ====== MAIN LOGIC ======
@@ -610,27 +413,6 @@ function processStatsCard(statsItem, statsInfo) {
         const ul = statsInfo.querySelector('ul');
         ul.appendChild(durationLi);
     }
-}
-
-/**
- * Create a duration list item for the sharing page
- * @param {Object} calculationDetails - Time calculation details
- * @return {HTMLElement} - Duration list item
- */
-function createDurationListItem(calculationDetails) {
-    const durationLi = document.createElement('li');
-    durationLi.className = 'hiking-estimator-estimate';
-
-    // Format time as hh:mm
-    const formattedTime = formatAsHHMM(calculationDetails.final);
-
-    // Set the content mimicking the style of the descent li
-    durationLi.innerHTML = `<strong>${formattedTime}</strong><div class="Stats-module__statLabel--Jk4cC">Duration</div>`;
-
-    // Add hover tooltip
-    setupTooltipForElement(durationLi, calculationDetails);
-
-    return durationLi;
 }
 
 /**

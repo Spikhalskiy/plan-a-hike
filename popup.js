@@ -3,23 +3,7 @@
  * Manages the extension popup UI and settings
  */
 
-// Constants for default settings
-const DEFAULT_SETTINGS = {
-  terrain: 'backcountry',
-  packWeight: 'light'
-};
-
-// Mode presets
-const MODE_PRESETS = {
-  'day-hike': {
-    terrain: 'backcountry',
-    packWeight: 'light'
-  },
-  'backpacking': {
-    terrain: 'hilly',
-    packWeight: 'heavy'
-  }
-};
+// Uses shared constants and functions from chrome-plugin-common.js
 
 document.addEventListener('DOMContentLoaded', function() {
   // First check if we're on a Gaia GPS page
@@ -51,14 +35,14 @@ document.addEventListener('DOMContentLoaded', function() {
             configureUIWithSettings(response.settings);
           } else {
             // Load saved settings as fallback
-            chrome.storage.sync.get(DEFAULT_SETTINGS, function(items) {
+            chrome.storage.sync.get(window.HikingTimeEstimator.DEFAULT_SETTINGS, function(items) {
               configureUIWithSettings(items);
             });
           }
         });
       } else {
         // Fallback if we can't communicate with the tab
-        chrome.storage.sync.get(DEFAULT_SETTINGS, function(items) {
+        chrome.storage.sync.get(window.HikingTimeEstimator.DEFAULT_SETTINGS, function(items) {
           configureUIWithSettings(items);
         });
       }
@@ -84,20 +68,15 @@ document.addEventListener('DOMContentLoaded', function() {
    */
   function applySettings(settings) {
     // First set the terrain and pack weight based on provided values
-    const terrain = settings.terrain || DEFAULT_SETTINGS.terrain;
-    const packWeight = settings.packWeight || DEFAULT_SETTINGS.packWeight;
+    const terrain = settings.terrain || window.HikingTimeEstimator.DEFAULT_SETTINGS.terrain;
+    const packWeight = settings.packWeight || window.HikingTimeEstimator.DEFAULT_SETTINGS.packWeight;
 
     // Initialize buttons for terrain and pack weight
     initializeButtons('terrain-options', terrain);
     initializeButtons('pack-options', packWeight);
 
-    // Derive the mode from terrain and pack weight
-    let mode = 'custom';
-    if (terrain === MODE_PRESETS['day-hike'].terrain && packWeight === MODE_PRESETS['day-hike'].packWeight) {
-      mode = 'day-hike';
-    } else if (terrain === MODE_PRESETS['backpacking'].terrain && packWeight === MODE_PRESETS['backpacking'].packWeight) {
-      mode = 'backpacking';
-    }
+    // Derive the mode from terrain and pack weight using the shared function
+    const mode = window.HikingTimeEstimator.determineCurrentMode(settings);
 
     // Initialize mode toggle
     updateModeToggle(mode);
@@ -138,8 +117,8 @@ document.addEventListener('DOMContentLoaded', function() {
     updateModeToggle(mode);
 
     // Update terrain and pack weight settings based on mode preset
-    if (MODE_PRESETS[mode]) {
-      const preset = MODE_PRESETS[mode];
+    if (window.HikingTimeEstimator.MODE_PRESETS[mode]) {
+      const preset = window.HikingTimeEstimator.MODE_PRESETS[mode];
       selectButton('terrain-options', preset.terrain);
       selectButton('pack-options', preset.packWeight);
     }
@@ -165,14 +144,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const terrain = document.querySelector('#terrain-options .option-button.selected').getAttribute('data-value');
     const packWeight = document.querySelector('#pack-options .option-button.selected').getAttribute('data-value');
 
-    // Check if settings match a predefined mode
-    if (terrain === MODE_PRESETS['day-hike'].terrain && packWeight === MODE_PRESETS['day-hike'].packWeight) {
-      updateModeToggle('day-hike');
-    } else if (terrain === MODE_PRESETS['backpacking'].terrain && packWeight === MODE_PRESETS['backpacking'].packWeight) {
-      updateModeToggle('backpacking');
-    } else {
-      updateModeToggle('custom');
-    }
+    // Use shared function to determine mode
+    const settings = { terrain, packWeight };
+    const mode = window.HikingTimeEstimator.determineCurrentMode(settings);
+    updateModeToggle(mode);
   }
 
   /**
@@ -204,19 +179,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const terrain = document.querySelector('#terrain-options .option-button.selected').getAttribute('data-value');
     const packWeight = document.querySelector('#pack-options .option-button.selected').getAttribute('data-value');
 
-    // Determine the current mode for UI display only
-    let mode = 'custom';
-    if (terrain === MODE_PRESETS['day-hike'].terrain && packWeight === MODE_PRESETS['day-hike'].packWeight) {
-      mode = 'day-hike';
-    } else if (terrain === MODE_PRESETS['backpacking'].terrain && packWeight === MODE_PRESETS['backpacking'].packWeight) {
-      mode = 'backpacking';
-    }
+    // Create settings object
+    const settings = { terrain, packWeight };
+
+    // Determine the current mode using shared function
+    const mode = window.HikingTimeEstimator.determineCurrentMode(settings);
 
     // Only save terrain and packWeight to Chrome storage
     const storageSettings = { terrain, packWeight };
 
     // The complete settings including derived mode (for the content script UI)
-    const settings = { terrain, packWeight, mode };
+    const completeSettings = { ...settings, mode };
 
     // Save to Chrome storage
     chrome.storage.sync.set(storageSettings, function() {
@@ -225,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (tabs[0] && tabs[0].id) {
           chrome.tabs.sendMessage(tabs[0].id, {
             action: 'settingsUpdated',
-            settings: settings
+            settings: completeSettings
           });
         }
       });

@@ -17,16 +17,17 @@ mkdir -p out/temp_extension
 
 # Copy all necessary files
 cp manifest.json out/temp_extension/
+cp hiking-time-calculator.js out/temp_extension/
+cp chrome-plugin.css out/temp_extension/
+cp chrome-plugin-common.js out/temp_extension/
+cp tooltip.js out/temp_extension/
+cp chrome-plugin.js out/temp_extension/
 cp popup.html out/temp_extension/
 cp popup.js out/temp_extension/
-cp chrome-plugin.css out/temp_extension/
-cp chrome-plugin.js out/temp_extension/
-cp hiking-time-calculator.html out/temp_extension/
-cp hiking-time-calculator.js out/temp_extension/
 
 # Copy image directory
 mkdir -p out/temp_extension/img
-cp -r img/* out/temp_extension/img/
+cp img/*.png out/temp_extension/img/
 
 # Create the zip file with current version in the filename
 zip_filename="out/plan-a-hike-v${CURRENT_VERSION}.zip"
