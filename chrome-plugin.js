@@ -8,8 +8,7 @@
 // Default user settings
 const DEFAULT_SETTINGS = {
   terrain: 'backcountry',
-  packWeight: 'moderate',
-  mode: 'custom'
+  packWeight: 'moderate'
 };
 
 // Mode presets mapping
@@ -240,10 +239,13 @@ function createModeToggle(currentMode, calculationDetails) {
         userSettings.terrain = MODE_PRESETS['backpacking'].terrain;
         userSettings.packWeight = MODE_PRESETS['backpacking'].packWeight;
       }
-      userSettings.mode = mode;
+      // Mode is no longer stored explicitly - it will be derived
 
       // Save settings to Chrome storage
-      chrome.storage.sync.set(userSettings);
+      chrome.storage.sync.set({
+        terrain: userSettings.terrain,
+        packWeight: userSettings.packWeight
+      });
 
       // Update UI
       slider.className = `mode-slider ${mode}`;

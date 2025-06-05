@@ -6,8 +6,7 @@
 // Constants for default settings
 const DEFAULT_SETTINGS = {
   terrain: 'backcountry',
-  packWeight: 'light',
-  mode: 'day-hike'
+  packWeight: 'light'
 };
 
 // Mode presets
@@ -87,11 +86,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // First set the terrain and pack weight based on provided values
     const terrain = settings.terrain || DEFAULT_SETTINGS.terrain;
     const packWeight = settings.packWeight || DEFAULT_SETTINGS.packWeight;
-    const mode = settings.mode || DEFAULT_SETTINGS.mode;
 
     // Initialize buttons for terrain and pack weight
     initializeButtons('terrain-options', terrain);
     initializeButtons('pack-options', packWeight);
+
+    // Derive the mode from terrain and pack weight
+    let mode = 'custom';
+    if (terrain === MODE_PRESETS['day-hike'].terrain && packWeight === MODE_PRESETS['day-hike'].packWeight) {
+      mode = 'day-hike';
+    } else if (terrain === MODE_PRESETS['backpacking'].terrain && packWeight === MODE_PRESETS['backpacking'].packWeight) {
+      mode = 'backpacking';
+    }
 
     // Initialize mode toggle
     updateModeToggle(mode);
@@ -198,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const terrain = document.querySelector('#terrain-options .option-button.selected').getAttribute('data-value');
     const packWeight = document.querySelector('#pack-options .option-button.selected').getAttribute('data-value');
 
-    // Determine the current mode
+    // Determine the current mode for UI display only
     let mode = 'custom';
     if (terrain === MODE_PRESETS['day-hike'].terrain && packWeight === MODE_PRESETS['day-hike'].packWeight) {
       mode = 'day-hike';
@@ -206,10 +212,14 @@ document.addEventListener('DOMContentLoaded', function() {
       mode = 'backpacking';
     }
 
+    // Only save terrain and packWeight to Chrome storage
+    const storageSettings = { terrain, packWeight };
+
+    // The complete settings including derived mode (for the content script UI)
     const settings = { terrain, packWeight, mode };
 
     // Save to Chrome storage
-    chrome.storage.sync.set(settings, function() {
+    chrome.storage.sync.set(storageSettings, function() {
       // Notify content script of the change
       chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         if (tabs[0] && tabs[0].id) {

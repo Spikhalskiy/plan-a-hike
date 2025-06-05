@@ -171,3 +171,13 @@ This is needed so the user can use the toggle on the tooltip.
 This Chrome plugin should work and be available only on http://www.gaiagps.com and https://www.gaiagps.com website.
 It should be disabled and not have any popup on other websites.
 It should not request any permissions to access pages on any other websites.
+
+## User Settings Persistence
+
+The plugin should save user settings (terrain type, pack weight) to Chrome storage whenever they are changed. 
+These settings should persist between browser sessions, 
+so users' preferences are remembered even after they close and reopen their browser. 
+When a user visits the Gaia GPS website in a new session, 
+the plugin should automatically retrieve and apply their previously saved settings.
+Mode should not be persisted and expected, it should be derived from the terrain type and pack weight.
+
