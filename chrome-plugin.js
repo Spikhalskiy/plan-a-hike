@@ -156,17 +156,9 @@ function createStyledDurationDiv(minutes, styleSource, summaryMode = false, calc
 
     // Apply appropriate styling based on mode
     if (summaryMode) {
-        // Route summary: label above, time below, mimic ascent div style
-        div.style.display = 'flex';
-        div.style.flexDirection = 'column';
-        div.style.alignItems = 'center';
-        div.style.justifyContent = 'center';
-        div.style.marginLeft = styleSource?.style.marginLeft || '0px';
-        div.style.marginTop = styleSource?.style.marginTop || '0px';
-
         // Use required classes for label and time, and 18px font size for time
         div.innerHTML = `
-            <span class="SummaryTrackStat-module__statLabel--g0_e7">Duration</span>
+            <span class="SummaryTrackStat-module__statLabel--g0_e7">~ Duration</span>
             <p class="MuiTypography-root MuiTypography-body1 SummaryTrackStat-module__stat--wJ0VF css-5c2nyf" 
                style="font-size: 18px;">${timeFormatted}</p>
         `;
@@ -201,7 +193,7 @@ function createDurationListItem(calculationDetails) {
     const formattedTime = window.HikingTimeEstimator.formatAsHHMM(calculationDetails.final);
 
     // Set the content mimicking the style of the descent li
-    durationLi.innerHTML = `<strong>${formattedTime}</strong><div class="Stats-module__statLabel--Jk4cC">Duration</div>`;
+    durationLi.innerHTML = `<strong>${formattedTime}</strong><div class="Stats-module__statLabel--Jk4cC">~ Duration</div>`;
 
     // Add hover tooltip
     window.TooltipManager.setupTooltipForElement(durationLi, calculationDetails, handleModeChange);

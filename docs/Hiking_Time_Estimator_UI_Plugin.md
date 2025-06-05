@@ -17,7 +17,7 @@ To calculate this correction, let's ask for two more categorical inputs:
     2. Backcountry: +0% - default
     3. Hilly: +10%
     4. Mountainous: +20%
-2. Packing Weight. Supported values are
+2. Pack Weight. Supported values are
     1. Light (7% body weight): +0% - default
     2. Moderate (14% body weight): +20%
     3. Heavy (20% body weight): +40%
@@ -95,7 +95,7 @@ Use #ACACAE `⏱` for the `⏱` icon and simple `<p>` tag for `hh:mm` text.
 ```
 
 This `div` displays distance of 9.56 miles, and ascent of 3,849 feet.
-Display an estimate in a format of `Duration` label above with time in `hh:mm` format below.
+Display an estimate in a format of `~ Duration` label above with time in `hh:mm` format below.
 Display it to the right of the Ascent div.
 Make it a separate div.
 Mimic the style of the Ascent div.
@@ -108,7 +108,7 @@ Use `SummaryTrackStat-module__stat--wJ0VF` and `css-5c2nyf` CSS classes for the 
 ```
 This `div` displays distance of 9.26 miles, Ascent of 1,107 feet, and Descent of 596 feet.
 There may be several such divs on the page, find the one that has a title `STATS`, like this example.
-Display an estimate as a time in `hh:mm` format above and `Duration` label below.
+Display an estimate as a time in `hh:mm` format above and `~ Duration` label below.
 Display it to the right of the Descent `li` element.
 Make it a separate `li` element.
 Mimic the style of the Descent `li` element.
@@ -121,7 +121,7 @@ When a user clicks on the plugin icon in the Chrome toolbar, it should open a sm
    2. Backcountry
    3. Hilly
    4. Mountainous:
-2. Packing Weight. Supported values are
+2. Pack Weight. Supported values are
    1. Light (7% body weight)
    2. Moderate (14% body weight)
    3. Heavy (20% body weight)
